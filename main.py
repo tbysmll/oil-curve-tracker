@@ -22,7 +22,7 @@ from config import MARKETS, OUTPUT_DIR, BASE_DIR, STALE_AFTER_DAYS  # Markets, f
 from eia import fetch_spot, fetch_wti_futures_history  # EIA downloads: spot prices and WTI futures history
 from futures import download_contracts, curve_on, save_snapshot, front_month_continuous, SNAPSHOT_FILE  # Yahoo downloads and the snapshot store
 from charts import save_all_charts                 # Draws and saves all five charts
-from report import summary_rows, summary_markdown, write_html  # Turns the results into the table, Markdown and web page
+from report import summary_rows, headline_tiles, summary_markdown, write_html  # Turns the results into the table, tiles, Markdown and dashboard
 
 README_FILE = BASE_DIR / "README.md"               # The project's front page on GitHub
 README_START = "<!-- LATEST-NUMBERS:START -->"     # Marker before the auto-updated section (hidden when GitHub shows the README)
@@ -87,14 +87,15 @@ def main():
     wti_history = fetch_wti_futures_history()      # EIA WTI contracts 1-4, 2010 to April 2024
 
     print("Making charts and writing the reports...")  # Progress message
-    chart_paths = save_all_charts(curves, prices, spot, wti_history, brent_future, wti_future)  # Draw and save all five charts into docs/charts/
+    charts = save_all_charts(curves, prices, spot, wti_history, brent_future, wti_future)  # Draw all five charts; get each one's file, title, source...
     rows = summary_rows(curves, spot, brent_future, wti_history)  # Today's numbers as table rows, built once for all three reports
-    file_section = summary_markdown(rows, chart_paths, run_time, "../docs/charts/")  # For output/summary.md (one folder down)
-    readme_section = summary_markdown(rows, chart_paths, run_time, "docs/charts/")   # For README.md (top folder)
+    tiles = headline_tiles(curves, prices, spot, brent_future, wti_history)  # The six headline numbers for the top of the dashboard
+    file_section = summary_markdown(rows, charts, run_time, "../docs/charts/")  # For output/summary.md (one folder down)
+    readme_section = summary_markdown(rows, charts, run_time, "docs/charts/")   # For README.md (top folder)
     summary_path = OUTPUT_DIR / "summary.md"       # Where the Markdown summary goes
     summary_path.write_text("# Oil Curve Tracker summary\n\n" + file_section, encoding="utf-8")  # Save it with a title
     update_readme(readme_section)                  # Refresh the README's "Latest numbers" section
-    report_path = write_html(rows, chart_paths, run_time)  # Write the web report, docs/index.html
+    report_path = write_html(rows, charts, tiles, run_time)  # Write the dashboard, docs/index.html
 
     for market, (curve, date) in curves.items():   # Every check has passed, so now it's safe to...
         save_snapshot(market, date, curve)         # ...add each curve to the daily history
@@ -104,8 +105,8 @@ def main():
     print(f"Summary saved to   {summary_path}")    # Where each output went
     print(f"Web report saved   {report_path}")     # The web page
     print(f"README updated     {README_FILE}")     # The README
-    for path in chart_paths:                       # Each chart image in turn
-        print(f"Chart saved to     {path}")        # Where it went
+    for chart in charts:                           # Each chart in turn
+        print(f"Chart saved to     {chart['path']}")  # Where its image went
     print(f"Snapshots added to {SNAPSHOT_FILE}")   # The daily curve history
 
 

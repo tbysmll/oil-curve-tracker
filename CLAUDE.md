@@ -50,10 +50,15 @@ Anything written here applies to every task, so I don't have to repeat it.
 ## Charts and the web page
 - All styling lives in `chart_style.py`. Use only its palette: navy #002B5C (Brent / main series), mid blue #4F81BD (WTI),
   gold #C9A227 (today's value), dark grey #595959 (text, secondary series), light grey #D9D9D9 (gridlines), on white.
-- Every chart: drawn inside `plt.rc_context(style.rc_params())`, 10 x 5.5 in at 200 dpi, a numbered bold title that states
-  the takeaway **generated from the data** (using `NEUTRAL_BAND` for "up"/"down"/"little changed"), a grey subtitle with what's
-  plotted and the units, lines labelled at their right-hand end (no legend box), today's value as a gold dot, and a source line
-  with the data date(s).
+- Charts are **card charts**: the PNG is only the plot, drawn inside `plt.rc_context(style.rc_params())` at `CARD_SIZE`
+  (half-width) or `WIDE_SIZE` (Figure 1), 200 dpi. Plot style: y-axis numbers on the right, bottom baseline only, small unboxed
+  key above the plot, each line's latest value in a coloured tag on the right axis (`value_tag`, with `hide_numbers_under_tags`),
+  and a gold dot on the latest point.
+- Each plot function returns `chart_info(...)`: file, figure number, a takeaway title **generated from the data** (using
+  `NEUTRAL_BAND` for "up"/"down"/"little changed"), subtitle (what's plotted and the units), source line with the data date(s),
+  and any note. `report.py` puts these in the dashboard card around the image, and as text around it in the README.
+- The web page is a dashboard: navy masthead, six headline tiles (`headline_tiles`; day-on-day changes compare the SAME
+  contract, never across a roll), Figure 1 full width, Figures 2-5 in pairs, a commentary sidebar, and the full numbers table.
 - Charts are saved once, in `docs/charts/`; the README, `output/summary.md` and the web page all link to the same files.
 - The web page's CSS takes its colours from `chart_style.py`, so the page and the charts always match.
 - The README text between `<!-- LATEST-NUMBERS:START -->` and `<!-- LATEST-NUMBERS:END -->` is rewritten on every run. Don't edit it by hand.

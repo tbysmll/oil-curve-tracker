@@ -1,5 +1,5 @@
 """
-charts.py - draws the tracker's five charts and saves them as PNG files in docs/charts/.
+charts.py - draws the tracker's five dashboard charts and saves them as PNG files in docs/charts/.
 (They live inside docs/ because GitHub Pages can only show files in that folder; the README
 and output/summary.md link to the same files, so each chart is stored once.)
 
@@ -9,9 +9,9 @@ and output/summary.md link to the same files, so each chart is stored once.)
   4. wti_m1m2_history.png       - a histogram of WTI M1-M2 from EIA history (2010-2024), with today's value marked
   5. front_month_comparison.png - Brent and WTI front-month futures over the past year, and the gap between them
 
-Every chart follows the house style in chart_style.py (bank research-note look): a numbered title that
-states the takeaway (generated from the data), a subtitle with what's plotted and the units, lines
-labelled at their right-hand end, today's value as a gold dot, and a source line with the data date.
+Each image is a compact "card chart" in the house style (chart_style.py): just the plot. Each plot function
+returns a dictionary with the file plus its numbered takeaway title (generated from the data), subtitle,
+source and any note, which report.py places in the dashboard card around the image.
 The calculations live in spreads.py; this file only draws.
 Run it with:  python charts.py
 """
@@ -29,9 +29,24 @@ from spreads import (                              # The calculations behind the
     front_month_spread,                            # Brent and WTI front-month futures side by side, and their gap
 )
 
-# The warning printed under Figure 5, inside the image so it goes wherever the chart goes
-ROLL_NOTE = ("Note: continuous front-month series switch to the next contract on roll days, "  # What they are...
+# The warning shown under Figure 5 on the dashboard and in the README
+ROLL_NOTE = ("Continuous front-month series switch to the next contract on roll days, "  # What they are...
              "so a sudden jump on those days isn't a real price move.")  # ...and why a jump can mislead
+
+
+def chart_info(path, number, title, subtitle, source, note=""):
+    """Bundle everything the dashboard needs to show one chart.
+
+    path     -- the saved PNG
+    number   -- the figure number, e.g. 1
+    title    -- the takeaway title, generated from the data
+    subtitle -- what's plotted and the units
+    source   -- the source line, including the data date(s)
+    note     -- an optional warning or explanation shown under the chart
+    Returns a dictionary with those six entries, under the keys path, number, title, subtitle, source and note.
+    """
+    return {"path": path, "number": number, "title": title,  # The file, its number and its takeaway...
+            "subtitle": subtitle, "source": source, "note": note}  # ...and the text that goes around it
 
 
 def month_label(contract):
@@ -106,38 +121,40 @@ def curves_takeaway(curves):
 
 
 def plot_curves(curves, prices):
-    """Figure 1: each market's curve today (solid) against the same contracts one month earlier (dashed).
+    """Figure 1 (full width): each market's curve today (solid) against the same contracts one month earlier (dashed).
 
     curves -- dictionary of market -> (curve, date) from futures.curve_on()
     prices -- dictionary of market -> price table from futures.download_contracts()
-    Returns the path of the saved PNG.
-    One panel per market, side by side on the same price scale. The title is generated from the data.
+    Returns the chart's details from chart_info().
+    One panel per market, side by side on the same price scale, with a gold dot on today's front month (M1).
     """
     with plt.rc_context(style.rc_params()):        # Apply the house style only while this chart is drawn
-        fig, axes = style.new_figure(1, len(curves), sharey=True)  # Two panels side by side, sharing one price scale
+        fig, axes = style.new_figure(1, len(curves), size=style.WIDE_SIZE, sharey=True)  # Two panels sharing one price scale
 
         for i, (ax, (market, (curve, date))) in enumerate(zip(axes, curves.items())):  # Each panel with its market (i = 0, 1)
             colour = style.MARKET_COLOURS[market]  # Navy for Brent, mid blue for WTI
             earlier, earlier_date = same_contracts_earlier(prices[market], curve, date)  # Same contracts a month ago
             x = list(range(len(curve)))            # x positions 0-11, one per delivery month
 
-            ax.plot(x, earlier.values, color=style.DARK_GREY, linewidth=1.5, linestyle="--")  # A month earlier: thin grey dashes
-            ax.plot(x, curve.values, color=colour) # Today: solid line in the market's colour, drawn on top
-            style.label_line_end(ax, x[-1], curve.iloc[-1], f"{date:%d-%b}", colour)  # Name each line at its right-hand end...
-            style.label_line_end(ax, x[-1], earlier.iloc[-1], f"{earlier_date:%d-%b}", style.DARK_GREY)  # ...by its date
-            style.mark_latest(ax, x[0], curve.iloc[0], f"{curve.iloc[0]:.2f}", dx=8, dy=8)  # Gold dot on today's front month (M1)
+            ax.plot(x, earlier.values, color=style.DARK_GREY, linewidth=1.2, linestyle="--",  # A month earlier: thin grey dashes
+                    label=f"{earlier_date:%d %b}") # Named by its date in the key
+            ax.plot(x, curve.values, color=colour, label=f"{date:%d %b}")  # Today: solid, in the market's colour, named by its date
+            style.mark_latest(ax, 0, curve.iloc[0], f"{curve.iloc[0]:.2f}")  # Gold dot and price on today's front month (M1)
 
             ax.set_xticks(x[::2])                  # A tick on every other contract, so the labels don't crowd
             ax.set_xticklabels([month_label(c) for c in curve.index[::2]])  # "Jan-27", "Mar-27" ...
             ax.set_xlim(-0.5, x[-1] + 0.5)         # A little space before M1 and after M12
-            ax.set_title(market, loc="left", fontsize=10, fontweight="bold", color=colour)  # Panel name, top-left
-            style.style_axes(ax, ylabel="$/bbl" if i == 0 else "")  # y label on the left panel only (the scale is shared)
+            ax.set_title(market, loc="left", fontsize=9, fontweight="bold", color=colour, pad=16)  # Panel name, above the key
+            style.add_key(ax)                      # "02 Oct - - -   02 Nov ——" above each panel
+            if i == 0:                             # The left panel shares the right panel's scale...
+                ax.tick_params(labelright=False)   # ...so it doesn't repeat the numbers in the gap between panels
 
-        style.add_titles(fig, 1, curves_takeaway(curves),  # "Figure 1: <takeaway from the data>"
-                         "Futures price by delivery month, $/bbl: latest (solid) vs the same contracts one month earlier (dashed)")  # Subtitle
-        as_of = ", ".join(f"{date:%d %b %Y} ({market})" for market, (_, date) in curves.items())  # Each curve's own date
-        style.add_source(fig, "NYMEX via Yahoo Finance", as_of)  # "Source: ... Data as of 02 Nov 2026 (Brent), ..."
-        return style.save(fig, CHART_DIR / "curves.png")  # Save at 10 x 5.5 in, 200 dpi, white background
+        path = style.save(fig, CHART_DIR / "curves.png")  # Save the image
+
+    as_of = ", ".join(f"{date:%d %b %Y} ({market})" for market, (_, date) in curves.items())  # Each curve's own date
+    return chart_info(path, 1, curves_takeaway(curves),  # The takeaway title, from the data
+                      "Futures price by delivery month, $/bbl: latest (solid) vs the same contracts one month earlier (dashed)",  # Subtitle
+                      f"NYMEX via Yahoo Finance. Data as of {as_of}.")  # Source line
 
 
 def plot_brent_wti_spread(spot, years=2):
@@ -145,8 +162,7 @@ def plot_brent_wti_spread(spot, years=2):
 
     spot  -- the table from eia.fetch_spot()
     years -- how many years back from EIA's latest date to show
-    Returns the path of the saved PNG.
-    The title says whether the spread rose or fell over the past month, generated from the data.
+    Returns the chart's details from chart_info(). The title says whether the spread rose or fell over the past month.
     """
     spread = brent_wti_spot_history(spot)          # Daily Brent minus WTI, every day both exist
     end = spread.index.max()                       # EIA's latest day with both prices
@@ -159,24 +175,27 @@ def plot_brent_wti_spread(spot, years=2):
     if verb == "little changed":                   # No real move: say so plainly
         takeaway = f"Brent-WTI spot spread little changed over the past month at {latest:+.2f} $/bbl"  # e.g. "...at +19.73 $/bbl"
     else:                                          # A real move: say which way and by how much
-        takeaway = f"Brent-WTI spot spread {verb} {abs(change):.2f} $/bbl over the past month, to {latest:+.2f}"  # e.g. "...up 2.40 $/bbl..."
+        takeaway = f"Brent-WTI spot spread {verb} {abs(change):.2f} $/bbl over the past month, to {latest:+.2f}"  # e.g. "...down 11.05..."
 
     with plt.rc_context(style.rc_params()):        # Apply the house style while this chart is drawn
-        fig, ax = style.new_figure()               # One chart area at the house size
+        fig, ax = style.new_figure()               # One half-width card
         ax.axhline(0, color=style.LIGHT_GREY, linewidth=1)  # Zero line: below it, WTI would be dearer than Brent
-        ax.plot([recent.index[0], recent.index[-1]], [median, median],  # Two-year median as a dashed reference line, ending at
-                color=style.DARK_GREY, linewidth=1, linestyle="--")  # the last date so its label sits clear of it
-        ax.plot(recent.index, recent.values, color=style.NAVY, linewidth=1.5)  # The daily spread (single series: navy)
+        ax.plot(recent.index, [median] * len(recent), color=style.DARK_GREY, linewidth=1, linestyle="--",  # Two-year median...
+                label="2-yr median")               # ...as a dashed reference line, named in the key
+        ax.plot(recent.index, recent.values, color=style.NAVY, linewidth=1.3, label="Brent minus WTI")  # The daily spread
 
-        nudges = style.label_offsets(ax, [latest, median])  # Stop the two right-hand labels overlapping
-        style.label_latest(ax, recent.index[-1], latest, f"{latest:+.2f}", style.NAVY, dy=nudges[0])  # Gold dot + today's value
-        style.label_line_end(ax, recent.index[-1], median, f"2-yr median {median:+.2f}", style.DARK_GREY, dy=nudges[1])  # Name the dashed line
-        style.style_axes(ax, dates=True)           # "$/bbl" label and "Nov-26" dates
+        style.mark_last(ax, recent.index[-1], latest)  # Gold dot on today's value
+        nudges = style.label_offsets(ax, [latest, median])  # Stop the two tags overlapping
+        style.value_tag(ax, latest, f"{latest:+.2f}", style.NAVY, dy=nudges[0])  # Today's value on the axis
+        style.value_tag(ax, median, f"{median:+.2f}", style.DARK_GREY, dy=nudges[1])  # The median on the axis
+        style.hide_numbers_under_tags(ax, [latest, median], nudges)  # Hide axis numbers the tags would cover
+        style.add_key(ax)                          # Small key above the plot
+        style.format_dates(ax)                     # "Nov-26" dates
+        path = style.save(fig, CHART_DIR / "brent_wti_spread.png")  # Save the image
 
-        style.add_titles(fig, 2, takeaway,         # "Figure 2: <takeaway>"
-                         "Daily Brent (Dated, FOB) minus WTI (Cushing) spot price, $/bbl; dashed line = two-year median")  # Subtitle
-        style.add_source(fig, "EIA", f"{end:%d %b %Y}")  # EIA is the only source here
-        return style.save(fig, CHART_DIR / "brent_wti_spread.png")  # Save and return the path
+    return chart_info(path, 2, takeaway,           # The takeaway title, from the data
+                      "Daily Brent (Dated, FOB) minus WTI (Cushing) spot price, $/bbl",  # Subtitle
+                      f"EIA. Data as of {end:%d %b %Y}.")  # Source line
 
 
 def plot_fixed_m1_m6(curves, prices, months=6):
@@ -185,8 +204,7 @@ def plot_fixed_m1_m6(curves, prices, months=6):
     curves -- dictionary of market -> (curve, date) from futures.curve_on()
     prices -- dictionary of market -> price table from futures.download_contracts()
     months -- how many months of history to show
-    Returns the path of the saved PNG.
-    The title says whether each market's six-month spread rose or fell over the past month.
+    Returns the chart's details from chart_info(). The title says whether each six-month spread rose or fell on the month.
     """
     lines = {}                                     # market -> (spread series, near contract, far contract, date)
     for market, (curve, date) in curves.items():   # "Brent" then "WTI"
@@ -207,24 +225,26 @@ def plot_fixed_m1_m6(curves, prices, months=6):
         takeaway = "Six-month spreads: " + ", ".join(f"{m} {moves[m]} on the month" for m in lines)  # ...so say each one
 
     with plt.rc_context(style.rc_params()):        # Apply the house style while this chart is drawn
-        fig, ax = style.new_figure()               # One chart area at the house size
+        fig, ax = style.new_figure()               # One half-width card
         ax.axhline(0, color=style.LIGHT_GREY, linewidth=1)  # Zero line: above = backwardation, below = contango
         for market, (series, _, _, _) in lines.items():  # One line per market
-            ax.plot(series.index, series.values, color=style.MARKET_COLOURS[market])  # Navy for Brent, mid blue for WTI
+            ax.plot(series.index, series.values, color=style.MARKET_COLOURS[market], label=market)  # Navy / mid blue, named in the key
 
         latest = [series.iloc[-1] for series, _, _, _ in lines.values()]  # Each line's latest value
-        nudges = style.label_offsets(ax, latest)   # Stop the two right-hand labels overlapping
-        for (market, (series, _, _, _)), dy in zip(lines.items(), nudges):  # Label each line at its end
-            style.label_latest(ax, series.index[-1], series.iloc[-1],  # Gold dot on the latest point...
-                               f"{market} {series.iloc[-1]:+.2f}", style.MARKET_COLOURS[market], dy=dy)  # ...with name and value
-        style.style_axes(ax, dates=True)           # "$/bbl" label and "Jun-26" dates
+        nudges = style.label_offsets(ax, latest)   # Stop the two tags overlapping
+        for (market, (series, _, _, _)), dy in zip(lines.items(), nudges):  # Each line in turn
+            style.mark_last(ax, series.index[-1], series.iloc[-1])  # Gold dot on its latest point
+            style.value_tag(ax, series.iloc[-1], f"{series.iloc[-1]:+.2f}", style.MARKET_COLOURS[market], dy=dy)  # Its value on the axis
+        style.hide_numbers_under_tags(ax, latest, nudges)  # Hide axis numbers the tags would cover
+        style.add_key(ax)                          # Small key above the plot
+        style.format_dates(ax)                     # "Jun-26" dates
+        path = style.save(fig, CHART_DIR / "m1_m6_fixed.png")  # Save the image
 
-        contracts = "; ".join(f"{m} {month_label(n)} minus {month_label(f)}" for m, (_, n, f, _) in lines.items())  # Which contracts
-        style.add_titles(fig, 3, takeaway,         # "Figure 3: <takeaway>"
-                         f"Daily spread between today's M1 and M6 contracts, held fixed ({contracts}), $/bbl")  # Subtitle
-        as_of = ", ".join(f"{d:%d %b %Y} ({m})" for m, (_, _, _, d) in lines.items())  # Each market's own date
-        style.add_source(fig, "NYMEX via Yahoo Finance", as_of)  # Source line
-        return style.save(fig, CHART_DIR / "m1_m6_fixed.png")  # Save and return the path
+    contracts = "; ".join(f"{m} {month_label(n)} minus {month_label(f)}" for m, (_, n, f, _) in lines.items())  # Which contracts
+    as_of = ", ".join(f"{d:%d %b %Y} ({m})" for m, (_, _, _, d) in lines.items())  # Each market's own date
+    return chart_info(path, 3, takeaway,           # The takeaway title, from the data
+                      f"Daily spread between today's M1 and M6 contracts, held fixed ({contracts}), $/bbl",  # Subtitle
+                      f"NYMEX via Yahoo Finance. Data as of {as_of}.")  # Source line
 
 
 def plot_wti_m1m2_histogram(curves, wti_history):
@@ -232,9 +252,9 @@ def plot_wti_m1m2_histogram(curves, wti_history):
 
     curves      -- dictionary of market -> (curve, date) from futures.curve_on() (only WTI is used)
     wti_history -- the table from eia.fetch_wti_futures_history()
-    Returns the path of the saved PNG.
+    Returns the chart's details from chart_info().
     The few most extreme contango days (e.g. -58.06 in April 2020) would squash every other bar into
-    a thin spike, so the lowest 0.5% of days are left off the chart and a note says how many.
+    a thin spike, so the lowest 0.5% of days are left off the chart and the note says how many.
     """
     hist = wti_m1m2_history(wti_history)           # Daily WTI M1-M2, 2010 to April 2024
     curve, date = curves["WTI"]                    # Today's WTI curve and its date
@@ -245,28 +265,25 @@ def plot_wti_m1m2_histogram(curves, wti_history):
     upper = max(hist.max(), today) + 0.25          # Right edge: the highest value (history or today) plus a margin
     off_chart = int((hist < lower).sum())          # How many days are left off on the left
 
-    takeaway = f"WTI M1-M2 at {today:+.2f} $/bbl: at or above {pct['percentile']:.1f}% of days in 2010-24"  # The percentile, in words
-
     with plt.rc_context(style.rc_params()):        # Apply the house style while this chart is drawn
-        fig, ax = style.new_figure()               # One chart area at the house size
-        ax.hist(hist, bins=60, range=(lower, upper),  # Count days in 60 equal-width ranges between the edges
-                color=style.MID_BLUE, edgecolor=style.WHITE, linewidth=0.5)  # WTI's colour, thin white gaps between bars
-        ax.axvline(today, color=style.GOLD, linewidth=2)  # Today's value as a gold vertical line
-        ax.annotate(f"Latest {today:+.2f}\n({date:%d %b %Y})",  # Label today's line with its value and date...
+        fig, ax = style.new_figure()               # One half-width card
+        ax.hist(hist, bins=50, range=(lower, upper),  # Count days in 50 equal-width ranges between the edges
+                color=style.MID_BLUE, edgecolor=style.WHITE, linewidth=0.4)  # WTI's colour, thin white gaps between bars
+        ax.axvline(today, color=style.GOLD, linewidth=1.8)  # Today's value as a gold vertical line
+        ax.annotate(f"Latest {today:+.2f}",        # Label today's line with its value...
                     xy=(today, 1), xycoords=("data", "axes fraction"),  # ...at the top of the line (x in $/bbl, y as a fraction of the height)
-                    xytext=(6, -4), textcoords="offset points",  # ...just to the right and slightly down
-                    ha="left", va="top", fontsize=9, fontweight="bold", color=style.DARK_GREY)  # Bold grey text
-        ax.set_xlabel("WTI M1-M2 spread, $/bbl")   # Here $/bbl runs along the bottom...
-        style.style_axes(ax, ylabel="Number of days")  # ...and the height counts days
+                    xytext=(4, -2), textcoords="offset points",  # ...just to the right
+                    ha="left", va="top", fontsize=8, fontweight="bold", color=style.DARK_GREY)  # Bold grey text
+        ax.set_xlabel("WTI M1-M2 spread, $/bbl", fontsize=8)  # Here $/bbl runs along the bottom; the height counts days
+        path = style.save(fig, CHART_DIR / "wti_m1m2_history.png")  # Save the image
 
-        style.add_titles(fig, 4, takeaway,         # "Figure 4: <takeaway>"
-                         f"Distribution of daily WTI M1-M2 spreads, {pct['start']:%b-%y} to {pct['end']:%b-%y} "  # Subtitle: what's plotted...
-                         f"({pct['days']:,} days); gold line = latest value")  # ...and what the gold line is
-        style.add_note(fig, f"Note: {off_chart} days below {lower:+.2f} $/bbl not shown "  # Say what was cut off...
-                            f"(lowest {pct['min']:+.2f} on {pct['min_date']:%d %b %Y}).")  # ...and the extreme it hides
-        style.add_source(fig, "EIA (history), NYMEX via Yahoo Finance (latest)",  # Two sources...
-                         f"{date:%d %b %Y} (latest), {pct['end']:%d %b %Y} (history)")  # ...each with its own date
-        return style.save(fig, CHART_DIR / "wti_m1m2_history.png")  # Save and return the path
+    return chart_info(path, 4,                     # Figure 4...
+                      f"WTI M1-M2 at {today:+.2f} $/bbl: at or above {pct['percentile']:.1f}% of days in 2010-24",  # ...takeaway title
+                      f"Number of days at each WTI M1-M2 spread, {pct['start']:%b-%y} to {pct['end']:%b-%y} "  # Subtitle: what's plotted...
+                      f"({pct['days']:,} days); gold line = latest value",  # ...and what the gold line is
+                      f"EIA (history to {pct['end']:%d %b %Y}), NYMEX via Yahoo Finance (latest, {date:%d %b %Y}).",  # Two sources, two dates
+                      f"{off_chart} days below {lower:+.2f} $/bbl not shown "  # Note: what was cut off...
+                      f"(lowest {pct['min']:+.2f} on {pct['min_date']:%d %b %Y}).")  # ...and the extreme it hides
 
 
 def plot_front_month_comparison(brent_front, wti_front, years=1):
@@ -275,9 +292,8 @@ def plot_front_month_comparison(brent_front, wti_front, years=1):
     brent_front -- the Series from futures.front_month_continuous("Brent") (Yahoo's BZ=F)
     wti_front   -- the Series from futures.front_month_continuous("WTI") (Yahoo's CL=F)
     years       -- how many years back from the latest shared date to show
-    Returns the path of the saved PNG.
-    Two panels stacked on one shared date axis, so each spread value sits directly under the two prices
-    it comes from. The title says how the spread has moved over the year.
+    Returns the chart's details from chart_info(). The title says how the spread has moved over the year.
+    Two panels stacked on one shared date axis, so each spread value sits directly under the two prices it comes from.
     """
     table = front_month_spread(brent_front, wti_front)  # brent, wti and spread columns, only on days both traded
     end = table.index.max()                        # The latest day both series have
@@ -296,24 +312,27 @@ def plot_front_month_comparison(brent_front, wti_front, years=1):
             gridspec_kw={"height_ratios": [3, 1]}) # ...with the top one three times as tall
 
         for market, column in [("Brent", "brent"), ("WTI", "wti")]:  # Each market's price line
-            top.plot(recent.index, recent[column], color=style.MARKET_COLOURS[market], linewidth=1.5)  # Navy / mid blue
+            top.plot(recent.index, recent[column], color=style.MARKET_COLOURS[market], linewidth=1.3, label=market)  # Navy / mid blue
         prices_now = [recent["brent"].iloc[-1], recent["wti"].iloc[-1]]  # Latest Brent and WTI prices
-        nudges = style.label_offsets(top, prices_now)  # Stop the two labels overlapping
-        for (market, value), dy in zip(zip(["Brent", "WTI"], prices_now), nudges):  # Label each line at its end
-            style.label_latest(top, recent.index[-1], value, f"{market} {value:.2f}",  # Gold dot, name and price...
-                               style.MARKET_COLOURS[market], dy=dy)  # ...in the market's colour
-        style.style_axes(top)                      # "$/bbl" label
+        nudges = style.label_offsets(top, prices_now)  # Stop the two tags overlapping
+        for (market, value), dy in zip(zip(["Brent", "WTI"], prices_now), nudges):  # Each market in turn
+            style.mark_last(top, recent.index[-1], value)  # Gold dot on its latest price
+            style.value_tag(top, value, f"{value:.2f}", style.MARKET_COLOURS[market], dy=dy)  # Its price on the axis
+        style.hide_numbers_under_tags(top, prices_now, nudges)  # Hide axis numbers the tags would cover
+        style.add_key(top)                         # Small key above the top panel
 
         bottom.axhline(0, color=style.LIGHT_GREY, linewidth=1)  # Zero line: above it Brent is dearer than WTI
-        bottom.plot(recent.index, recent["spread"], color=style.DARK_GREY, linewidth=1.5)  # The gap (secondary series: grey)
-        style.label_latest(bottom, recent.index[-1], latest, f"{latest:+.2f}", style.DARK_GREY)  # Gold dot and today's gap
-        style.style_axes(bottom, ylabel="Brent-WTI,\n$/bbl", dates=True)  # Two-line label to fit the short panel; "Nov-26" dates
+        bottom.plot(recent.index, recent["spread"], color=style.DARK_GREY, linewidth=1.2)  # The gap (secondary series: grey)
+        style.mark_last(bottom, recent.index[-1], latest)  # Gold dot on today's gap
+        style.value_tag(bottom, latest, f"{latest:+.2f}", style.DARK_GREY)  # Today's gap on the axis
+        style.hide_numbers_under_tags(bottom, [latest])  # Hide the axis number the tag would cover
+        style.format_dates(bottom)                 # "Nov-26" dates along the bottom
+        path = style.save(fig, CHART_DIR / "front_month_comparison.png")  # Save the image
 
-        style.add_titles(fig, 5, takeaway,         # "Figure 5: <takeaway>"
-                         "Continuous front-month futures, $/bbl (top); Brent minus WTI, $/bbl (bottom)")  # Subtitle
-        style.add_note(fig, ROLL_NOTE)             # The roll-day warning, under the dates
-        style.add_source(fig, "NYMEX via Yahoo Finance (BZ=F, CL=F)", f"{end:%d %b %Y}")  # Source line
-        return style.save(fig, CHART_DIR / "front_month_comparison.png")  # Save and return the path
+    return chart_info(path, 5, takeaway,           # The takeaway title, from the data
+                      "Continuous front-month futures, $/bbl (top); Brent minus WTI, $/bbl (bottom)",  # Subtitle
+                      f"NYMEX via Yahoo Finance (BZ=F, CL=F). Data as of {end:%d %b %Y}.",  # Source line
+                      ROLL_NOTE)                   # The roll-day warning
 
 
 def save_all_charts(curves, prices, spot, wti_history, brent_front, wti_front):
@@ -325,10 +344,10 @@ def save_all_charts(curves, prices, spot, wti_history, brent_front, wti_front):
     wti_history -- the table from eia.fetch_wti_futures_history()
     brent_front -- the Series from futures.front_month_continuous("Brent")
     wti_front   -- the Series from futures.front_month_continuous("WTI")
-    Returns a list of the five saved file paths, in figure order.
+    Returns a list of five chart_info() dictionaries, in figure order.
     """
-    return [                                       # Make each chart in turn and collect where it was saved
-        plot_curves(curves, prices),               # Figure 1: curves today vs a month earlier
+    return [                                       # Make each chart in turn and collect its details
+        plot_curves(curves, prices),               # Figure 1: curves today vs a month earlier (full width)
         plot_brent_wti_spread(spot),               # Figure 2: Brent-WTI spot spread, two years
         plot_fixed_m1_m6(curves, prices),          # Figure 3: fixed M1-M6 contracts, six months
         plot_wti_m1m2_histogram(curves, wti_history),  # Figure 4: WTI M1-M2 histogram
@@ -350,5 +369,5 @@ if __name__ == "__main__":                         # Only runs when you type "py
     brent_front = front_month_continuous("Brent")  # Yahoo's continuous Brent front-month series (BZ=F)
     wti_front = front_month_continuous("WTI")      # Yahoo's continuous WTI front-month series (CL=F)
 
-    for path in save_all_charts(curves, prices, spot, wti_history, brent_front, wti_front):  # Make all five charts
-        print(f"Saved {path}")                     # Say where each one went
+    for chart in save_all_charts(curves, prices, spot, wti_history, brent_front, wti_front):  # Make all five charts
+        print(f"Figure {chart['number']}: {chart['title']}  ->  {chart['path']}")  # Each title and where its image went

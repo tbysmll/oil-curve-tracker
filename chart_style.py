@@ -1,14 +1,13 @@
 """
-chart_style.py - the house style for every chart, modelled on a sell-side bank research note.
+chart_style.py - the house style for every chart and the web dashboard, modelled on a sell-side research dashboard.
 
-Every chart in charts.py takes its colours, font, size, layout and labelling from here, so they
-all look the same. To change the look of every chart at once, change it in this file only.
+The charts are "card charts": each PNG is just the plot. Its numbered title, subtitle, source and any note are
+written by report.py into the dashboard card around it (and as text above and below it in the README), so the
+images stay compact and crisp inside a grid.
 
-The layout of each figure, top to bottom:
-  Figure N: <takeaway title, bold>          <- what the chart shows, generated from the data
-  <one-line grey subtitle: what's plotted and the units>
-  [ the chart itself, lines labelled at their right-hand end, today's value as a gold dot ]
-  Source: ... Data as of DD Mon YYYY.       <- small grey text, bottom-left
+Plot style: y-axis numbers on the right, a bottom baseline only, light horizontal gridlines, a small unboxed key
+above the plot, each line's latest value in a coloured tag on the right-hand axis, and a gold dot on the latest point.
+To change the look of every chart (and the web page's colours) at once, change it in this file only.
 """
 
 import matplotlib.pyplot as plt                    # pyplot creates figures and chart areas
@@ -30,25 +29,20 @@ MARKET_COLOURS = {"Brent": NAVY, "WTI": MID_BLUE}  # Each market always gets the
 # ---------------------------------------------------------------------------
 # Size, font and date format
 # ---------------------------------------------------------------------------
-FIGSIZE = (10, 5.5)      # Every chart is 10 x 5.5 inches...
-DPI = 200                # ...saved at 200 dots per inch, i.e. 2000 x 1100 pixels
+CARD_SIZE = (5.2, 3.6)   # A half-width dashboard card, in inches
+WIDE_SIZE = (10.4, 3.6)  # A full-width card (twice as wide, same height)
+DPI = 200                # Saved at 200 dots per inch, so they stay sharp on high-resolution screens
 DATE_FORMAT = "%b-%y"    # Dates written like "Nov-26"
 FONT_PREFERENCE = ["Arial", "Helvetica", "Liberation Sans", "DejaVu Sans"]  # First one installed wins; Liberation Sans
                          # is a free Arial look-alike found on Linux (e.g. GitHub's servers); DejaVu Sans comes with matplotlib
 
 # ---------------------------------------------------------------------------
-# Layout, as fractions of the figure (0 = left/bottom edge, 1 = right/top edge)
+# Layout of the plot inside each image, as fractions (0 = left/bottom edge, 1 = right/top edge)
 # ---------------------------------------------------------------------------
-TEXT_X = 0.02            # Left edge of the title, subtitle and source line
-TITLE_Y = 0.96           # Top of the bold title
-SUBTITLE_Y = 0.895       # Top of the grey subtitle
-SOURCE_Y = 0.02          # Bottom of the source line
-PLOT_LEFT = 0.08         # Left edge of the chart area (leaves room for the y-axis numbers and label)
-PLOT_RIGHT = 0.88        # Right edge of the chart area (leaves room for the line-end labels)
-PLOT_TOP = 0.80          # Top of the chart area (leaves room for the title and subtitle)
-PLOT_BOTTOM = 0.16       # Bottom of the chart area (leaves room for the dates and the source line)
-PLOT_BOTTOM_WITH_NOTE = 0.21  # Bottom of the chart area when a note sits between the dates and the source line
-NOTE_Y = 0.065           # Bottom of that note
+PLOT_LEFT = 0.05         # A small left margin (the y-axis numbers are on the right), just wide enough for the first date label
+PLOT_RIGHT = 0.87        # Room on the right for the y-axis numbers and the value tags
+PLOT_TOP = 0.87          # Room above for the key
+PLOT_BOTTOM = 0.13       # Room below for the dates
 
 
 def pick_font():
@@ -72,166 +66,161 @@ def rc_params():
     """
     return {                                       # Each setting below changes one default of matplotlib
         "font.family": pick_font(),                # Arial (or the nearest installed match)
-        "font.size": 10,                           # Default text size in points
+        "font.size": 10,                           # Text sized to stay readable when a card is shown ~370 px wide
         "text.parse_math": False,                  # Treat $ as a plain dollar sign: otherwise text between two $ signs
                                                    # (e.g. "$/bbl ... $/bbl") is read as a maths formula and garbled
         "text.color": DARK_GREY,                   # Default text colour
         "axes.labelcolor": DARK_GREY,              # Axis label colour
-        "axes.edgecolor": DARK_GREY,               # Colour of the left and bottom axis lines
-        "axes.linewidth": 0.8,                     # Thin axis lines
+        "axes.edgecolor": DARK_GREY,               # Colour of the bottom baseline
+        "axes.linewidth": 0.8,                     # Thin baseline
         "axes.spines.top": False,                  # No border along the top...
-        "axes.spines.right": False,                # ...or down the right-hand side
+        "axes.spines.right": False,                # ...down the right...
+        "axes.spines.left": False,                 # ...or down the left: just a bottom baseline
         "axes.grid": True,                         # Gridlines on...
         "axes.grid.axis": "y",                     # ...horizontal only (no vertical gridlines)
         "axes.axisbelow": True,                    # Gridlines drawn behind the data
+        "axes.xmargin": 0.01,                      # Lines run almost to the edges of the plot
         "grid.color": LIGHT_GREY,                  # Light grey gridlines
-        "grid.linewidth": 0.8,                     # Thin gridlines
-        "xtick.color": DARK_GREY,                  # Tick marks and numbers along the bottom
-        "ytick.color": DARK_GREY,                  # Tick marks and numbers up the side
-        "xtick.major.size": 3,                     # Short tick marks...
-        "ytick.major.size": 0,                     # ...and none on the y-axis (the gridlines do that job)
-        "lines.linewidth": 2,                      # Default line thickness
-        "legend.frameon": False,                   # If a legend is ever needed, no box around it
+        "grid.linewidth": 0.6,                     # Hairline gridlines
+        "xtick.color": DARK_GREY,                  # Tick marks and dates along the bottom
+        "xtick.major.size": 3,                     # Short tick marks on the dates
+        "xtick.labelsize": 9,                      # Date labels
+        "ytick.color": DARK_GREY,                  # The y-axis numbers
+        "ytick.left": False,                       # No y-axis ticks on the left...
+        "ytick.labelleft": False,                  # ...or numbers on the left...
+        "ytick.right": True,                       # ...they go on the right instead,
+        "ytick.labelright": True,                  # ...where a reader's eye ends up at the latest data
+        "ytick.major.size": 0,                     # No tick marks (the gridlines do that job)
+        "ytick.labelsize": 9,                      # Axis numbers
+        "lines.linewidth": 1.6,                    # Fairly thin lines
+        "legend.frameon": False,                   # The key never has a box around it
+        "legend.fontsize": 9,                      # Key text
         "figure.facecolor": WHITE,                 # White figure background
         "axes.facecolor": WHITE,                   # White chart-area background
         "savefig.facecolor": WHITE,                # Saved files have a white background, never transparent
     }
 
 
-def new_figure(nrows=1, ncols=1, **kwargs):
-    """Create a blank figure at the house size, with room left for the title, subtitle and source.
+def new_figure(nrows=1, ncols=1, size=CARD_SIZE, **kwargs):
+    """Create a blank figure at a card size, with the plot placed in the house margins.
 
     nrows, ncols -- how many chart areas, in rows and columns (most charts have one)
+    size         -- CARD_SIZE for a half-width card, WIDE_SIZE for a full-width one
     **kwargs     -- any extra plt.subplots options, e.g. sharey=True
     Returns (fig, axes): the figure and its chart area(s).
     """
-    fig, axes = plt.subplots(nrows, ncols, figsize=FIGSIZE, **kwargs)  # The figure and its chart area(s)
+    fig, axes = plt.subplots(nrows, ncols, figsize=size, **kwargs)  # The figure and its chart area(s)
     fig.subplots_adjust(left=PLOT_LEFT, right=PLOT_RIGHT, top=PLOT_TOP, bottom=PLOT_BOTTOM,  # Fixed margins...
-                        wspace=0.30, hspace=0.35)  # ...and spacing between panels, so every chart lines up the same way
+                        wspace=0.12, hspace=0.30)  # ...and spacing between panels
     return fig, axes                               # Hand them back
 
 
-def add_titles(fig, number, takeaway, subtitle):
-    """Write the numbered, left-aligned bold title and the grey subtitle at the top of the figure.
+def format_dates(ax):
+    """Write the dates along the bottom of a time-series chart like "Nov-26".
 
-    fig      -- the figure
-    number   -- the figure number, e.g. 1
-    takeaway -- what the chart shows, e.g. "Brent curve in steep backwardation"
-    subtitle -- what's plotted and the units, e.g. "Futures price by delivery month, $/bbl"
+    ax -- the chart area
     Returns nothing.
     """
-    fig.text(TEXT_X, TITLE_Y, f"Figure {number}: {takeaway}",  # "Figure 1: ..."
-             ha="left", va="top", fontsize=13, fontweight="bold", color=NAVY)  # Left-aligned, bold, navy
-    fig.text(TEXT_X, SUBTITLE_Y, subtitle,         # The subtitle, just below the title
-             ha="left", va="top", fontsize=10, color=DARK_GREY)  # Left-aligned, regular weight, grey
+    ax.xaxis.set_major_formatter(mdates.DateFormatter(DATE_FORMAT))  # e.g. "Nov-26"
 
 
-def add_source(fig, sources, as_of):
-    """Write the source line in small grey text at the bottom-left of the figure.
+def add_key(ax):
+    """Show a small key (no box) just above the top-left of the plot, one item per labelled line, side by side.
 
-    fig     -- the figure
-    sources -- where the data came from, e.g. "EIA, NYMEX via Yahoo Finance"
-    as_of   -- the data date(s) as text, e.g. "02 Nov 2026"
+    ax -- the chart area; its lines must have been drawn with label="..."
     Returns nothing.
     """
-    fig.text(TEXT_X, SOURCE_Y, f"Source: {sources}. Data as of {as_of}.",  # "Source: ... Data as of ..."
-             ha="left", va="bottom", fontsize=8, color=DARK_GREY)  # Small, grey, bottom-left
+    handles, labels = ax.get_legend_handles_labels()  # The lines that were given a label
+    ax.legend(handles, labels, loc="lower left", bbox_to_anchor=(0, 1.0),  # Anchored at the plot's top-left corner, sitting above it
+              ncol=len(labels), handlelength=1.6, columnspacing=1.4, borderaxespad=0.2)  # All on one row, compact
 
 
-def add_note(fig, text):
-    """Write a short grey note between the chart and the source line (e.g. a warning about the data).
-
-    fig  -- the figure
-    text -- the note
-    Returns nothing. Raises the bottom of the chart area slightly to make room for the note.
-    """
-    fig.subplots_adjust(bottom=PLOT_BOTTOM_WITH_NOTE)  # Lift the chart area so the note fits under the dates
-    fig.text(TEXT_X, NOTE_Y, text, ha="left", va="bottom", fontsize=8, color=DARK_GREY)  # Small grey note, above the source line
-
-
-def style_axes(ax, ylabel="$/bbl", dates=False):
-    """Finish one chart area: y-axis label and, for time series, dates written like "Nov-26".
-
-    ax     -- the chart area
-    ylabel -- the y-axis label ("" for none, e.g. on a right-hand panel that shares the left one's axis)
-    dates  -- True if the x-axis holds dates
-    Returns nothing. Borders and gridlines are already handled by rc_params().
-    """
-    ax.set_ylabel(ylabel)                          # e.g. "$/bbl"
-    if dates:                                      # For charts over time...
-        ax.xaxis.set_major_formatter(mdates.DateFormatter(DATE_FORMAT))  # ...write dates as "Nov-26"
-
-
-def label_line_end(ax, x, y, text, colour, dy=0):
-    """Write a line's name just to the right of its last point, instead of using a legend box.
-
-    ax     -- the chart area
-    x, y   -- the line's last point
-    text   -- the label, e.g. "Brent"
-    colour -- the line's colour, so the label is clearly tied to its line
-    dy     -- optional nudge up (+) or down (-) in points, to stop two labels overlapping
-    Returns nothing.
-    """
-    ax.annotate(text, (x, y), xytext=(8, dy), textcoords="offset points",  # 8 points right of the end of the line
-                va="center", ha="left", fontsize=9, fontweight="bold", color=colour,  # Bold, in the line's colour
-                annotation_clip=False)             # Allow the label to sit in the margin outside the chart area
-
-
-def mark_latest(ax, x, y, text, dx=8, dy=0, ha="left"):
-    """Mark today's value with a small gold dot and its number.
+def mark_latest(ax, x, y, text, dx=6, dy=6, ha="left"):
+    """A small gold dot on a point with its number beside it (used on the curve chart for today's M1 price).
 
     ax       -- the chart area
-    x, y     -- where today's value sits on the chart
-    text     -- the number to show, e.g. "105.75"
+    x, y     -- the point
+    text     -- the number to show, e.g. "104.77"
     dx, dy   -- where to put the number relative to the dot, in points
     ha       -- "left" puts the number to the right of that spot, "right" to the left
     Returns nothing.
     """
-    ax.scatter([x], [y], s=28, color=GOLD, zorder=5)  # The gold dot, drawn on top of the line (zorder)
+    ax.scatter([x], [y], s=22, color=GOLD, zorder=5)  # The gold dot, drawn on top of the line (zorder)
     ax.annotate(text, (x, y), xytext=(dx, dy), textcoords="offset points",  # The number, nudged off the dot
-                va="center", ha=ha, fontsize=9, fontweight="bold", color=DARK_GREY,  # Bold grey text
-                annotation_clip=False)             # Allow it to sit in the margin if needed
+                va="center", ha=ha, fontsize=9, fontweight="bold", color=DARK_GREY)  # Bold grey text
 
 
-def label_latest(ax, x, y, text, colour, dy=0):
-    """For a line over time: a gold dot on its latest point, with the line's name and latest value beside it.
+def mark_last(ax, x, y):
+    """A small gold dot on a line's latest point.
+
+    ax   -- the chart area
+    x, y -- the latest point (last date, last value)
+    Returns nothing.
+    """
+    ax.scatter([x], [y], s=18, color=GOLD, zorder=5)  # Gold dot, drawn on top of the line
+
+
+def value_tag(ax, y, text, colour, dy=0):
+    """A coloured tag on the right-hand axis showing a line's latest value, like a market terminal or bank chart.
 
     ax     -- the chart area
-    x, y   -- the latest point (last date, last value)
-    text   -- name and value together, e.g. "Brent +11.71"
-    colour -- the line's colour, so the label is clearly tied to its line
-    dy     -- optional nudge up (+) or down (-) in points, from label_offsets(), to stop labels overlapping
-    Returns nothing. Replaces a legend: the label sits where the reader's eye ends up.
+    y      -- the value, which sets the tag's height on the axis
+    text   -- what the tag says, e.g. "+11.71"
+    colour -- the line's colour (the tag is filled with it, with white text)
+    dy     -- optional nudge up (+) or down (-) in points, from label_offsets(), to stop tags overlapping
+    Returns nothing.
     """
-    ax.scatter([x], [y], s=28, color=GOLD, zorder=5)  # The gold dot, drawn on top of the line
-    label_line_end(ax, x, y, text, colour, dy=dy)  # The name and value just to its right
+    ax.annotate(text, xy=(1, y), xycoords=("axes fraction", "data"),  # At the right-hand edge, at the value's height
+                xytext=(3, dy), textcoords="offset points",  # Just outside the plot, over the axis numbers
+                va="center", ha="left", fontsize=8.5, fontweight="bold", color=WHITE,  # Bold white text...
+                bbox={"boxstyle": "square,pad=0.25", "facecolor": colour, "edgecolor": "none"},  # ...on a box in the line's colour
+                annotation_clip=False)             # Allow it to sit outside the plot area
 
 
-def label_offsets(ax, ys, min_gap=12):
-    """Work out how far to nudge line-end labels so that none sit closer than `min_gap` points apart.
+def label_offsets(ax, ys, min_gap=11):
+    """Work out how far to nudge value tags so that none sit closer than `min_gap` points apart.
 
     ax      -- the chart area (its scale is needed to turn $/bbl into distance on the page)
-    ys      -- the heights of the labels in data units, e.g. [11.71, 8.75]
-    min_gap -- the smallest allowed vertical gap between labels, in points (a 9-point label needs about 12)
-    Returns a list of nudges in points, one per label, in the same order as ys (0 = no nudge needed).
+    ys      -- the heights of the tags in data units, e.g. [11.71, 8.75]
+    min_gap -- the smallest allowed vertical gap between tags, in points
+    Returns a list of nudges in points, one per tag, in the same order as ys (0 = no nudge needed).
     """
     to_points = 72 / ax.figure.dpi                 # 72 points per inch; dpi is pixels per inch, so this turns pixels into points
-    heights = [ax.transData.transform((0, y))[1] * to_points for y in ys]  # Each label's height on the page, in points
-    order = sorted(range(len(ys)), key=lambda i: heights[i])  # Label numbers from lowest to highest on the page
-    placed = list(heights)                         # Where each label will end up; starts where it would naturally sit
-    for previous, current in zip(order, order[1:]):  # Walk up the labels, each one with the one just below it
+    heights = [ax.transData.transform((0, y))[1] * to_points for y in ys]  # Each tag's height on the page, in points
+    order = sorted(range(len(ys)), key=lambda i: heights[i])  # Tag numbers from lowest to highest on the page
+    placed = list(heights)                         # Where each tag will end up; starts where it would naturally sit
+    for previous, current in zip(order, order[1:]):  # Walk up the tags, each one with the one just below it
         if placed[current] - placed[previous] < min_gap:  # Too close to the one below...
             placed[current] = placed[previous] + min_gap  # ...so push it up to exactly min_gap above
     return [placed[i] - heights[i] for i in range(len(ys))]  # Nudge = where it ends up minus where it started
 
 
+def hide_numbers_under_tags(ax, ys, nudges=None, gap=10):
+    """Hide any right-hand axis number that a value tag would sit on top of, so tags never cover half a number.
+
+    ax     -- the chart area (call this after its lines are drawn)
+    ys     -- the tags' values in data units, e.g. [105.95, 97.92]
+    nudges -- the same nudges (in points) given to value_tag(), if any; None means no nudges
+    gap    -- how close, in points, an axis number can be to a tag before it's hidden
+    Returns nothing.
+    """
+    nudges = nudges or [0] * len(ys)               # No nudges given: treat every nudge as 0
+    ax.set_ylim(ax.get_ylim())                     # Freeze the scale, so the axis numbers can't move after this check
+    to_points = 72 / ax.figure.dpi                 # Turns pixels into points (72 points per inch)
+    tags = [ax.transData.transform((0, y))[1] * to_points + dy for y, dy in zip(ys, nudges)]  # Each tag's height on the page
+    for tick, value in zip(ax.yaxis.get_major_ticks(), ax.get_yticks()):  # Each axis number and the value it shows
+        height = ax.transData.transform((0, value))[1] * to_points  # That number's height on the page
+        if any(abs(height - tag) < gap for tag in tags):  # A tag sits on (or very near) it...
+            tick.label2.set_visible(False)         # ...so hide it (label2 is the right-hand number)
+
+
 def save(fig, path):
-    """Save the figure as a PNG at the house size and resolution, with a white background, then close it.
+    """Save the figure as a PNG at the house resolution, with a white background, then close it.
 
     fig  -- the finished figure
     path -- where to save it, e.g. docs/charts/curves.png
     Returns the path.
-    No "tight" trimming, so every chart comes out exactly 10 x 5.5 inches (2000 x 1100 pixels).
+    No "tight" trimming, so every card chart comes out at exactly the same size.
     """
     fig.savefig(path, dpi=DPI, facecolor=WHITE)    # Write the PNG
     plt.close(fig)                                 # Free the memory
