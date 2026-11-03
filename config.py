@@ -60,3 +60,12 @@ NEUTRAL_BAND = 0.10
 # If the newest complete curve Yahoo gives us is older than this many days, stop instead of saving it.
 # 5 days covers a weekend plus a market holiday; anything older means Yahoo has stopped updating.
 STALE_AFTER_DAYS = 5
+
+# Only SETTLED futures prices are used. Before this hour (UK time), today's Yahoo row is live trading, not the
+# day's settlement, so it's ignored and the previous trading day's settlement is used instead. NYMEX's daily
+# session closes at 17:00 New York time, which is 22:00 UK time for most of the year.
+SETTLEMENT_HOUR_UK = 22
+
+# How far back to download Yahoo's continuous front-month series (BZ=F, CL=F). Earlier than HISTORY_START
+# because the two-year average of Dated Brent minus the front-month future needs more than two years of it.
+FRONT_MONTH_START = "2024-01-01"

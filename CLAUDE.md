@@ -43,7 +43,10 @@ Anything written here applies to every task, so I don't have to repeat it.
   and commits the outputs as `github-actions[bot]`. It can also be run by hand: Actions → Daily curve update → Run workflow.
 - **Website:** GitHub Pages publishes the `docs/` folder at https://tbysmll.github.io/oil-curve-tracker/
 - **Before I push anything:** `git pull --rebase` first, because the bot commits every weekday night.
-- If `main.py` runs during US trading hours, the snapshot holds live prices; that night's run replaces them with the close.
+- Only **settlement** prices are used: `futures.settled_only()` drops today's Yahoo row before 22:00 UK (`SETTLEMENT_HOUR_UK`)
+  and anything dated after today, so a daytime run uses the previous trading day's settlement. The page says
+  "Futures: settlement prices as of ...". The commentary card shows "Numbers as of <date>" from Git's last commit of
+  `commentary.txt` (the workflow uses `fetch-depth: 0` for this).
 - Any failed download or check stops the run **before anything is saved**, so the workflow never commits bad data. Keep it that way.
 - The workflow checks out `ref: main` and uses `git pull --rebase -X theirs`, so overlapping runs (or a push during a run) don't
   fail on conflicts in the generated files. Safe because the bot only ever commits generated files. Don't remove either.
@@ -102,6 +105,8 @@ Anything written here applies to every task, so I don't have to repeat it.
 - **Time spread** = nearer contract minus further contract (e.g. M1-M2). Positive = backwardation, negative = contango.
 - **Flat**: a spread within ±`NEUTRAL_BAND` ($0.10) of zero.
 - **Brent-WTI spread** = Brent spot minus WTI spot (EIA).
+- **WTI M1-M2 percentile** = share of 2010-24 trading days with a spread strictly below today's. Always worded
+  "higher than X% of trading days, 2010-24" (tile, chart title, table and console).
 
 ## Checking the work
 - After any calculation, verify at least one number by hand from the raw prices and show me the working.

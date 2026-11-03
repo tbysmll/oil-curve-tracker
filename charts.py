@@ -278,7 +278,7 @@ def plot_wti_m1m2_histogram(curves, wti_history):
         path = style.save(fig, CHART_DIR / "wti_m1m2_history")  # Save the image
 
     return chart_info(path, 4,                     # Figure 4...
-                      f"WTI M1-M2 at {today:+.2f} $/bbl: at or above {pct['percentile']:.1f}% of days in 2010-24",  # ...takeaway title
+                      f"WTI M1-M2 at {today:+.2f} $/bbl: higher than {pct['percentile']:.1f}% of trading days, 2010-24",  # ...takeaway title (standard wording)
                       f"Number of days at each WTI M1-M2 spread, {pct['start']:%b-%y} to {pct['end']:%b-%y} "  # Subtitle: what's plotted...
                       f"({pct['days']:,} days); gold line = latest value",  # ...and what the gold line is
                       f"EIA (history to {pct['end']:%d %b %Y}), NYMEX via Yahoo Finance (latest, {date:%d %b %Y}).",  # Two sources, two dates

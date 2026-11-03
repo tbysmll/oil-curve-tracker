@@ -53,6 +53,8 @@ jobs:                                        # A workflow is made of jobs; this 
         with:                                # Options for that step
           ref: main                          # The latest main when this run STARTS (not when it was triggered), so a run
                                              # that waited in the queue begins from the previous run's results
+          fetch-depth: 0                     # Download the full history, so report.py can ask Git when commentary.txt
+                                             # was last changed (a one-commit copy would make every file look new)
 
       - name: Install Python                 # Step 2
         uses: actions/setup-python@v6        # GitHub's ready-made step that installs Python

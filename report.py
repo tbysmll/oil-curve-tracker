@@ -12,6 +12,8 @@ It's one self-contained HTML file with its styling built in and no JavaScript, s
 """
 
 import html                                        # html.escape makes text safe to place inside a web page
+import subprocess                                  # Runs Git, to find when commentary.txt was last committed
+import datetime as dt                              # Turns a file's timestamp into a date
 import pandas as pd                                # pandas, for turning contract labels into dates
 from config import BASE_DIR, DOCS_DIR, REPO_URL    # Folders, and the GitHub link for the page footer
 import chart_style as style                        # The house palette and date format, so the page matches the charts
@@ -23,6 +25,7 @@ from spreads import (                              # The calculations
     brent_wti_spot_history,                        # The daily Brent-WTI spot spread
     dated_brent_vs_future,                         # Dated Brent minus the front-month future
     wti_m1m2_percentile,                           # Where today's WTI M1-M2 sits in history
+    dated_brent_gap_average,                       # The 2-year average of Dated Brent minus the front-month future
 )
 
 COMMENTARY_FILE = BASE_DIR / "commentary.txt"      # Toby's hand-written commentary
@@ -30,7 +33,7 @@ REPORT_FILE = DOCS_DIR / "index.html"              # The web page; "index.html" 
 
 NOTES = [                                          # Caveats shown with the numbers in every report
     "Brent and WTI curves can come from different days: each uses its latest day with all 12 contracts priced.",  # curve_on() behaviour
-    "If the tracker ran during US trading hours, the latest futures prices are live rather than closing prices.",  # Yahoo live prices
+    "Futures prices are settlements only: a run before 22:00 UK time uses the previous trading day's settlement.",  # No live prices
     "EIA spot prices run a few days behind; the WTI percentile deliberately compares today with 2010-2024.",  # EIA lag and the agreed exception
 ]                                                  # End of the notes
 
@@ -60,6 +63,8 @@ h1 { margin: 2px 0; font-size: 26px; color: var(--white); }            /* Page t
 .tile-detail { margin: 2px 0 0; font-size: 12px; font-weight: 700; }   /* The change or reading, e.g. "▲ +0.98 vs 30 Oct" */
 .tile-date { margin: 2px 0 0; font-size: 11px; }                       /* The data date, smallest */
 .tile-info { margin: 8px 0 0; padding-top: 7px; border-top: 1px solid var(--light-grey); font-size: 11.5px; line-height: 1.4; }  /* The plain-English explanation, under a hairline */
+.asof { margin: 16px 0 -8px; font-size: 12px; font-weight: 700; }     /* "Futures: settlement prices as of ..." above the tiles */
+.asof-note { margin: 0 0 10px; font-size: 12px; font-style: italic; } /* "Numbers as of ..." at the top of the commentary */
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }  /* Charts on the left, sidebar on the right */
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }  /* Charts in two columns */
 .card { border: 1px solid var(--light-grey); padding: 14px 16px 12px; background: var(--white); }  /* Every chart and panel sits in a card */
@@ -133,12 +138,20 @@ def summary_rows(curves, spot, brent_future, wti_history):
         "date": f"{db['date']:%d %b %Y} (latest date both sources have)",  # The shared date (CLAUDE.md rule)
         "working": f"EIA {db['dated_brent']:.2f} minus Yahoo BZ=F {db['front_future']:.2f}",  # The subtraction
     })
+    avg = dated_brent_gap_average(spot, brent_future)  # The same gap averaged over two years, as a yardstick for today's
+    rows.append({                                  # The yardstick row
+        "measure": "Dated Brent minus front-month future, 2-year average",  # Which number
+        "value": f"{avg['average']:+.2f}",        # The average
+        "reading": f"today {db['spread']:+.2f} vs 2-year average {avg['average']:+.2f}",  # Today against the yardstick
+        "date": f"{avg['start']:%d %b %Y} to {avg['end']:%d %b %Y}",  # The window (dates both sources have)
+        "working": f"mean of {avg['days']:,} trading days with both EIA and Yahoo prices",  # What the average is based on
+    })
     rows.append({                                  # Today's WTI M1-M2 against the EIA history
         "measure": "WTI M1-M2 percentile vs EIA history",  # Which number
-        "value": f"{pct['percentile']:.1f}",       # The percentile
-        "reading": "percentile (not $/bbl)",       # Flag that this one isn't a price
+        "value": f"{pct['percentile']:.1f}%",      # The percentile (not $/bbl, hence the % sign)
+        "reading": f"higher than {pct['percentile']:.1f}% of trading days, 2010-24",  # The standard wording
         "date": f"today {wti_date:%d %b %Y}; history {pct['start']:%d %b %Y} to {pct['end']:%d %b %Y}",  # Both dates involved
-        "working": f"{pct['at_or_below']:,} of {pct['days']:,} days at or below {wti_today:+.2f}",  # The count behind it
+        "working": f"{wti_today:+.2f} is higher than {pct['below']:,} of {pct['days']:,} trading days",  # The count behind it, same direction
     })
     return rows                                    # Hand back the finished rows
 
@@ -191,8 +204,8 @@ def percentile_meaning(percentile):
         reading = "historically loose: unusually deep contango, with plenty of oil now"  # ...very weak front end
     else:                                          # Anywhere in between...
         reading = "within its normal range"        # ...nothing unusual
-    return (f"WTI front month minus the next month. Today's spread is at or above {percentile:.0f}% of "  # What it is...
-            f"days from 2010 to 2024: {reading}.")  # ...and how unusual today is
+    return (f"WTI front month minus the next month. Today's spread is higher than {percentile:.1f}% of "  # What it is...
+            f"trading days, 2010-24: {reading}.")  # ...and how unusual today is (standard wording)
 
 
 def physical_meaning(spread):
@@ -253,7 +266,7 @@ def headline_tiles(curves, prices, spot, brent_future, wti_history):
         "label": "WTI M1-M2",                      # Which spread
         "value": f"{wti_m1m2:+.2f}",               # Its value
         "unit": "$/bbl",                           # Its unit
-        "detail": f"percentile {pct['percentile']:.1f} vs 2010-24",  # How unusual it is
+        "detail": f"higher than {pct['percentile']:.1f}% of trading days, 2010-24",  # How unusual it is (standard wording)
         "date": f"{wti_date:%d %b %Y}",            # The data date
         "info": percentile_meaning(pct["percentile"]),  # What the percentile means, in words
     })
@@ -347,13 +360,52 @@ def read_commentary():
     return paragraphs                              # Hand back the paragraphs
 
 
-def write_html(rows, charts, tiles, run_time, interactive=None):
+def data_as_of(curves, spot):
+    """The dates the page's numbers come from, for the "settlement prices as of" line.
+
+    curves -- dictionary of market -> (curve, date) from futures.curve_on()
+    spot   -- the table from eia.fetch_spot()
+    Returns a dictionary: text (the line shown on the page) and latest (the newest of those dates).
+    """
+    futures = ", ".join(f"{date:%d %b %Y} ({market})" for market, (_, date) in curves.items())  # Each curve's settlement date
+    eia_date = spot[["brent_spot", "wti_spot"]].dropna().index.max()  # EIA's latest day with both spot prices
+    return {                                       # Hand back the line and the newest date
+        "text": f"Futures: settlement prices as of {futures}. Spot: EIA as of {eia_date:%d %b %Y}.",  # Shown above the tiles
+        "latest": max(date for _, date in curves.values()),  # The newest data date on the page
+    }
+
+
+def commentary_date():
+    """When commentary.txt was last edited, so readers can see whether the commentary is older than the numbers.
+
+    Takes no inputs. Returns a date, or None if there's no commentary file.
+    GitHub's servers download a fresh copy of every file on each run, so there the file's own timestamp would
+    always say "today". So we ask Git when the file was last committed. If it has edits that aren't committed
+    yet (on my PC), or Git isn't available, the file's own timestamp is the right answer.
+    """
+    if not COMMENTARY_FILE.exists():               # No commentary yet...
+        return None                                # ...so no date
+    try:                                           # Git may not be installed; if not, fall through to the file's timestamp
+        status = subprocess.run(["git", "status", "--porcelain", "--", COMMENTARY_FILE.name],  # Any uncommitted edits?
+                                cwd=BASE_DIR, capture_output=True, text=True)  # Run in the project folder; capture the answer
+        if status.returncode == 0 and not status.stdout.strip():  # Git worked and reports no uncommitted edits...
+            last = subprocess.run(["git", "log", "-1", "--format=%cs", "--", COMMENTARY_FILE.name],  # ...so ask for the
+                                  cwd=BASE_DIR, capture_output=True, text=True)  # date of the last commit that changed it
+            if last.stdout.strip():                # Git gave a date (as YYYY-MM-DD)...
+                return pd.Timestamp(last.stdout.strip())  # ...so use it
+    except FileNotFoundError:                      # Git isn't installed...
+        pass                                       # ...so use the file's own timestamp below
+    return pd.Timestamp(dt.datetime.fromtimestamp(COMMENTARY_FILE.stat().st_mtime).date())  # When the file was last saved
+
+
+def write_html(rows, charts, tiles, run_time, interactive=None, as_of=None):
     """Write docs/index.html: the dashboard.
 
     rows     -- from summary_rows()
     charts   -- the list of chart details from charts.save_all_charts()
     tiles    -- from headline_tiles()
     run_time -- when this run happened, shown in the masthead
+    as_of    -- optional: from data_as_of(); shown above the tiles and used to flag a commentary older than the data
     interactive -- optional: figure number -> Plotly HTML snippet from interactive.build_interactive(); charts
                    without one are shown as their static SVG
     Returns the path of the saved page.
@@ -387,6 +439,7 @@ def write_html(rows, charts, tiles, run_time, interactive=None):
         f'<div class="stamp">Last updated<strong>{run_time:%d %b %Y, %H:%M}</strong>UK time</div>',  # Right side: when it was made
         "</div></header>",                         # End of the band
         '<main class="wrap">',                     # The main content
+        f'<p class="asof">{esc(as_of["text"])}</p>' if as_of else "",  # "Futures: settlement prices as of ..." above the tiles
         '<section class="tiles">',                 # The six headline tiles
     ]
     for tile in tiles:                             # One tile per headline number
@@ -427,6 +480,12 @@ def write_html(rows, charts, tiles, run_time, interactive=None):
     page.append("</div>")                          # End of the charts grid
 
     page += ['<aside class="side">', '<div class="card">', "<h2>Commentary</h2>"]  # The sidebar, starting with the commentary card
+    written = commentary_date()                    # When the commentary was last edited
+    if written is not None:                        # If there is a commentary file...
+        line = f"Numbers as of {written:%d %b %Y}"  # ...say which day's numbers it discusses
+        if as_of and written < as_of["latest"].normalize():  # Older than the newest data on the page...
+            line += ", older than the latest data on this page: check the dates above"  # ...so warn the reader
+        page.append(f'<p class="asof-note">{esc(line)}</p>')  # Shown at the top of the commentary
     if paragraphs:                                 # If there's commentary...
         page.append(f'<p class="dated">{esc(paragraphs[0])}</p>')  # ...its first line (the date it was written) in bold navy
         page += [f"<p>{esc(p)}</p>" for p in paragraphs[1:]]  # ...then one <p> (paragraph) per paragraph, escaped

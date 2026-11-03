@@ -22,7 +22,7 @@ from config import MARKETS, OUTPUT_DIR, BASE_DIR, STALE_AFTER_DAYS  # Markets, f
 from eia import fetch_spot, fetch_wti_futures_history  # EIA downloads: spot prices and WTI futures history
 from futures import download_contracts, curve_on, save_snapshot, front_month_continuous, SNAPSHOT_FILE  # Yahoo downloads and the snapshot store
 from charts import save_all_charts                 # Draws and saves all five charts
-from report import summary_rows, headline_tiles, summary_markdown, write_html  # Turns the results into the table, tiles, Markdown and dashboard
+from report import summary_rows, headline_tiles, summary_markdown, write_html, data_as_of  # The table, tiles, Markdown, dashboard and data dates
 from interactive import build_interactive         # The interactive (Plotly) versions of the charts, for the website
 
 README_FILE = BASE_DIR / "README.md"               # The project's front page on GitHub
@@ -97,7 +97,8 @@ def main():
     summary_path.write_text("# Oil Curve Tracker summary\n\n" + file_section, encoding="utf-8")  # Save it with a title
     update_readme(readme_section)                  # Refresh the README's "Latest numbers" section
     figures = build_interactive(curves, prices, spot, wti_history, brent_future, wti_future)  # Interactive charts for the website
-    report_path = write_html(rows, charts, tiles, run_time, figures)  # Write the dashboard, docs/index.html
+    as_of = data_as_of(curves, spot)               # The settlement and EIA dates, for the "as of" line on the page
+    report_path = write_html(rows, charts, tiles, run_time, figures, as_of)  # Write the dashboard, docs/index.html
 
     for market, (curve, date) in curves.items():   # Every check has passed, so now it's safe to...
         save_snapshot(market, date, curve)         # ...add each curve to the daily history

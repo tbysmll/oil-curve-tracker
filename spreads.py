@@ -117,6 +117,28 @@ def dated_brent_vs_future(spot, front_future):
     }
 
 
+def dated_brent_gap_average(spot, front_future, years=2):
+    """The average of Dated Brent minus the Brent front-month future over the past `years` years.
+
+    spot         -- the table from eia.fetch_spot() (we use its brent_spot column)
+    front_future -- the Series from futures.front_month_continuous("Brent")
+    years        -- how many years back from the latest shared date to average over
+    Returns a dictionary: average ($/bbl), days (how many days it's based on), start and end dates.
+    Two sources, so each day's gap uses that day's two prices only (days missing either are skipped), and the
+    window ends on the latest date both have (CLAUDE.md rule). It gives today's gap a yardstick: is +9 unusual?
+    """
+    both = pd.concat([spot["brent_spot"], front_future], axis=1).dropna()  # Line the two up by date; keep days both have
+    gap = both["brent_spot"] - both[front_future.name]  # Dated Brent minus the future, each day
+    end = gap.index.max()                          # The latest day both sources have
+    recent = gap.loc[end - pd.DateOffset(years=years):]  # Just the last two years
+    return {                                       # Hand back the average and what it's based on
+        "average": round(recent.mean(), 2),       # The mean gap, rounded to cents
+        "days": len(recent),                      # How many days went into it
+        "start": recent.index.min(),              # First day of the window
+        "end": end,                               # Last day of the window
+    }
+
+
 def brent_wti_spot_history(spot):
     """The daily Brent-WTI spot spread from EIA, on every day both prices exist.
 
@@ -176,14 +198,16 @@ def wti_m1m2_percentile(today_spread, history):
     history      -- the table from eia.fetch_wti_futures_history(), with columns wti_m1 and wti_m2
     Returns a dictionary: the percentile, how many days it's based on, the history's date range,
     and its median, minimum and maximum (with dates) for context.
+    The percentile is the share of trading days STRICTLY below today's spread, so it reads exactly as
+    "higher than X% of trading days, 2010-24" (the one wording used everywhere).
     Mixing today's Yahoo spread with the older EIA history is deliberate (see CLAUDE.md).
     """
     hist = wti_m1m2_history(history)               # Daily M1-M2 over 2010 to April 2024
-    at_or_below = int((hist <= today_spread).sum())  # Count of historical days with a spread at or below today's
-    percentile = at_or_below / len(hist) * 100     # Turn that count into a percentage of all days
+    below = int((hist < today_spread).sum())       # Trading days with a spread strictly below today's: today is higher than these
+    percentile = below / len(hist) * 100           # As a share of all trading days: "higher than X% of trading days"
     return {                                       # Hand back the result and its context
-        "percentile": round(percentile, 1),        # e.g. 95.3 = steeper backwardation than on 95.3% of days
-        "at_or_below": at_or_below,                # The count used, so the percentile can be checked by hand
+        "percentile": round(percentile, 1),        # e.g. 96.8 = higher than 96.8% of trading days, 2010-24
+        "below": below,                            # The count used, so the percentile can be checked by hand
         "days": len(hist),                         # Total days in the history
         "start": hist.index.min(),                 # First day of the history
         "end": hist.index.max(),                   # Last day (EIA stopped updating in April 2024)
@@ -235,7 +259,8 @@ def summary_lines(curves, spot, brent_future, wti_history):
     lines.append(f"4. WTI M1-M2 percentile vs EIA history "  # Heading...
                  f"({pct['start']:%d %b %Y} to {pct['end']:%d %b %Y}, {pct['days']:,} days)")  # ...with the history's date range
     lines.append(f"   Today's WTI M1-M2 ({wti_date:%d %b %Y}): {wti_today:+.2f}")  # Today's value with its date
-    lines.append(f"   Percentile: {pct['percentile']:.1f}  ({pct['at_or_below']:,} of {pct['days']:,} days were at or below it)")  # The answer and the count behind it
+    lines.append(f"   Higher than {pct['percentile']:.1f}% of trading days, 2010-24 "  # The answer, in the standard wording...
+                 f"(higher than {pct['below']:,} of {pct['days']:,} trading days)")  # ...and the count behind it
     lines.append(f"   History median {pct['median']:+.2f}; "  # Context: the typical value...
                  f"min {pct['min']:+.2f} on {pct['min_date']:%d %b %Y}; "  # ...the deepest contango...
                  f"max {pct['max']:+.2f} on {pct['max_date']:%d %b %Y}")  # ...and the steepest backwardation

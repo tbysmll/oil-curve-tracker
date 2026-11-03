@@ -10,11 +10,33 @@ to data/curve_snapshots.csv, so a true history builds up from the day you start 
 """
 
 import datetime as dt                 # dt handles dates (today's date, building delivery months)
+from zoneinfo import ZoneInfo        # Time zones, so "before 22:00" means UK time even on GitHub's servers
 import pandas as pd                   # pandas tables
 import yfinance as yf                 # yfinance downloads prices from Yahoo Finance
 from config import MONTH_CODES, MARKETS, CURVE_MONTHS, HISTORY_START, DATA_DIR  # settings
+from config import SETTLEMENT_HOUR_UK, FRONT_MONTH_START  # When today's prices count as settled; front-month history start
 
 SNAPSHOT_FILE = DATA_DIR / "curve_snapshots.csv"   # Where each day's curve is saved
+UK_TIME = ZoneInfo("Europe/London")               # The UK time zone (GMT in winter, BST in summer)
+
+
+def settled_only(table, now=None):
+    """Keep only settled prices: drop any row that is still live trading.
+
+    table -- a table or Series of daily prices from Yahoo, indexed by date
+    now   -- the time to judge by (defaults to the current UK time); a different time can be passed in to test it
+    Returns the same data without unsettled rows: anything dated after today, and today's row if it's still
+    before SETTLEMENT_HOUR_UK. During trading hours Yahoo's latest row is live prices, not the day's settlement,
+    so a daytime run uses the previous trading day's settlement instead. Applied to every Yahoo download, so
+    curve_on(), the front-month series, the charts, the tiles and the snapshot all only ever see settlements.
+    """
+    now = now or dt.datetime.now(UK_TIME)            # The current UK time, unless a time was given
+    today = pd.Timestamp(now.date())                 # Today's date, in the same form as the table's dates
+    if now.hour >= SETTLEMENT_HOUR_UK:               # After 22:00 UK, today's prices have settled...
+        cutoff = today + pd.Timedelta(days=1)        # ...so keep everything up to and including today
+    else:                                            # Before 22:00 UK, today's row is still live...
+        cutoff = today                               # ...so keep only rows from before today
+    return table[table.index < cutoff]               # Drop the unsettled rows
 
 
 def contract_tickers(market, today=None):
@@ -68,6 +90,7 @@ def download_contracts(market):
     raw = raw.rename(columns=labels)                 # Swap tickers for month labels, e.g. BZF27.NYM -> 2027-01
     raw = raw[sorted(raw.columns)]                   # Order columns by delivery month, nearest first
     raw.index = pd.to_datetime(raw.index).tz_localize(None)  # Plain dates without a time zone, so they line up with EIA dates
+    raw = settled_only(raw)                          # Settlement prices only: drop today's live row before 22:00 UK
     raw.index.name = "date"                          # Name the date column
     raw.columns.name = None                          # Tidy up the column header
     return raw                                       # Hand back the table
@@ -163,13 +186,15 @@ def load_snapshots():
 def front_month_continuous(market):
     """Yahoo's continuous front-month series (BZ=F or CL=F): always the nearest contract.
 
-    Used to compare Dated Brent (physical spot) with the front-month future.
+    Used to compare Dated Brent (physical spot) with the front-month future, and for Figure 5.
+    Starts at FRONT_MONTH_START (earlier than the contracts) so a two-year average is possible.
     """
     ticker = f"{MARKETS[market]['root']}=F"          # e.g. "BZ=F" for Brent
-    raw = yf.download(ticker, start=HISTORY_START, auto_adjust=False, progress=False)["Close"]  # Daily closes
+    raw = yf.download(ticker, start=FRONT_MONTH_START, auto_adjust=False, progress=False)["Close"]  # Daily closes
     series = raw.squeeze("columns").dropna()         # yfinance returns a one-column table; turn it into a simple Series, minus blanks
+    series.index = pd.to_datetime(series.index).tz_localize(None)  # Plain dates, no time zone
+    series = settled_only(series)                    # Settlement prices only: drop today's live row before 22:00 UK
     if series.empty:                                 # No prices at all means the download failed
         raise RuntimeError(f"Yahoo returned no prices for {ticker}. The download failed or was blocked.")  # Stop clearly
-    series.index = pd.to_datetime(series.index).tz_localize(None)  # Plain dates, no time zone
     series.name = f"{market.lower()}_front_future"   # e.g. "brent_front_future"
     return series                                    # Hand it back
