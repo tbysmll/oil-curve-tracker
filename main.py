@@ -5,7 +5,7 @@ Run it with:  python main.py
 It writes:
   data/curve_snapshots.csv  - today's Brent and WTI curves added to the daily history
   output/summary.md         - a table of today's numbers, each with the date its prices come from, plus the charts
-  docs/charts/*.png         - the five charts (see charts.py)
+  docs/charts/*.svg         - the five charts (see charts.py)
   docs/index.html           - the web report published by GitHub Pages, with Toby's commentary (see report.py)
   README.md                 - the "Latest numbers" section is replaced with today's table and charts
 
@@ -23,6 +23,7 @@ from eia import fetch_spot, fetch_wti_futures_history  # EIA downloads: spot pri
 from futures import download_contracts, curve_on, save_snapshot, front_month_continuous, SNAPSHOT_FILE  # Yahoo downloads and the snapshot store
 from charts import save_all_charts                 # Draws and saves all five charts
 from report import summary_rows, headline_tiles, summary_markdown, write_html  # Turns the results into the table, tiles, Markdown and dashboard
+from interactive import build_interactive         # The interactive (Plotly) versions of the charts, for the website
 
 README_FILE = BASE_DIR / "README.md"               # The project's front page on GitHub
 README_START = "<!-- LATEST-NUMBERS:START -->"     # Marker before the auto-updated section (hidden when GitHub shows the README)
@@ -95,7 +96,8 @@ def main():
     summary_path = OUTPUT_DIR / "summary.md"       # Where the Markdown summary goes
     summary_path.write_text("# Oil Curve Tracker summary\n\n" + file_section, encoding="utf-8")  # Save it with a title
     update_readme(readme_section)                  # Refresh the README's "Latest numbers" section
-    report_path = write_html(rows, charts, tiles, run_time)  # Write the dashboard, docs/index.html
+    figures = build_interactive(curves, prices, spot, wti_history, brent_future, wti_future)  # Interactive charts for the website
+    report_path = write_html(rows, charts, tiles, run_time, figures)  # Write the dashboard, docs/index.html
 
     for market, (curve, date) in curves.items():   # Every check has passed, so now it's safe to...
         save_snapshot(market, date, curve)         # ...add each curve to the daily history

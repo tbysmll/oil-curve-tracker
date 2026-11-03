@@ -1,7 +1,7 @@
 """
 chart_style.py - the house style for every chart and the web dashboard, modelled on a sell-side research dashboard.
 
-The charts are "card charts": each PNG is just the plot. Its numbered title, subtitle, source and any note are
+The charts are "card charts": each image is just the plot, saved as SVG (see FILE_TYPE). Its numbered title, subtitle, source and any note are
 written by report.py into the dashboard card around it (and as text above and below it in the README), so the
 images stay compact and crisp inside a grid.
 
@@ -31,7 +31,7 @@ MARKET_COLOURS = {"Brent": NAVY, "WTI": MID_BLUE}  # Each market always gets the
 # ---------------------------------------------------------------------------
 CARD_SIZE = (5.2, 3.6)   # A half-width dashboard card, in inches
 WIDE_SIZE = (10.4, 3.6)  # A full-width card (twice as wide, same height)
-DPI = 200                # Saved at 200 dots per inch, so they stay sharp on high-resolution screens
+FILE_TYPE = "svg"        # SVG stores the shapes themselves, not pixels, so charts stay sharp at any size or zoom
 DATE_FORMAT = "%b-%y"    # Dates written like "Nov-26"
 FONT_PREFERENCE = ["Arial", "Helvetica", "Liberation Sans", "DejaVu Sans"]  # First one installed wins; Liberation Sans
                          # is a free Arial look-alike found on Linux (e.g. GitHub's servers); DejaVu Sans comes with matplotlib
@@ -98,6 +98,10 @@ def rc_params():
         "figure.facecolor": WHITE,                 # White figure background
         "axes.facecolor": WHITE,                   # White chart-area background
         "savefig.facecolor": WHITE,                # Saved files have a white background, never transparent
+        "svg.fonttype": "path",                    # Save lettering as drawn shapes, so charts look identical on every
+                                                   # computer, even one without Arial
+        "svg.hashsalt": "oil-curve-tracker",       # Fixed internal IDs (instead of random ones), so an unchanged chart
+                                                   # produces an identical file and Git sees no change
     }
 
 
@@ -215,13 +219,15 @@ def hide_numbers_under_tags(ax, ys, nudges=None, gap=10):
 
 
 def save(fig, path):
-    """Save the figure as a PNG at the house resolution, with a white background, then close it.
+    """Save the figure in the house file type (SVG), with a white background, then close it.
 
     fig  -- the finished figure
-    path -- where to save it, e.g. docs/charts/curves.png
-    Returns the path.
+    path -- where to save it, without a file ending, e.g. docs/charts/curves (".svg" is added here)
+    Returns the full path, e.g. docs/charts/curves.svg.
     No "tight" trimming, so every card chart comes out at exactly the same size.
     """
-    fig.savefig(path, dpi=DPI, facecolor=WHITE)    # Write the PNG
+    path = path.with_suffix(f".{FILE_TYPE}")     # Add the file ending, e.g. curves -> curves.svg
+    fig.savefig(path, format=FILE_TYPE, facecolor=WHITE,  # Write the file...
+                metadata={"Date": None})           # ...without a date stamp inside, so unchanged charts stay identical
     plt.close(fig)                                 # Free the memory
     return path                                    # Tell the caller where it went

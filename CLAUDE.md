@@ -27,7 +27,8 @@ Anything written here applies to every task, so I don't have to repeat it.
 - `futures.py` — today's Brent and WTI **futures curves** from Yahoo Finance, the continuous front-month series, and the daily snapshot store.
 - `spreads.py` — every calculation (time spreads and labels, Brent-WTI, Dated Brent vs future, percentile, histories). No downloads.
 - `chart_style.py` — the house style for every chart and the web page: palette, font, size, layout and labelling helpers.
-- `charts.py` — draws the five charts into `docs/charts/`. Drawing only; the numbers come from `spreads.py`.
+- `charts.py` — draws the five static SVG charts into `docs/charts/` (README, and the website's fallback). Drawing only.
+- `interactive.py` — the website's interactive Plotly versions of the same five charts (hover, drag to zoom).
 - `report.py` — builds the numbers table once, then the Markdown summary and the web page `docs/index.html`.
 - `main.py` — runs everything: download, check, calculate, chart, write reports, and only then save the snapshot.
 - `commentary.txt` — my own commentary, shown on the web page.
@@ -36,7 +37,7 @@ Anything written here applies to every task, so I don't have to repeat it.
 
 ## How it runs
 - **Locally:** activate `.venv`, then `python main.py`. It writes `data/curve_snapshots.csv`, `output/summary.md`,
-  `docs/charts/*.png`, `docs/index.html` and the README's "Latest numbers" section.
+  `docs/charts/*.svg`, `docs/index.html` and the README's "Latest numbers" section.
 - **On GitHub:** the workflow runs at 22:30 UK time on weekdays (two cron lines, 21:30 and 22:30 UTC, plus a check of the
   UK clock, because GitHub's timetable only understands UTC). It reads the EIA key from the repository secret `EIA_API_KEY`
   and commits the outputs as `github-actions[bot]`. It can also be run by hand: Actions → Daily curve update → Run workflow.
@@ -50,8 +51,9 @@ Anything written here applies to every task, so I don't have to repeat it.
 ## Charts and the web page
 - All styling lives in `chart_style.py`. Use only its palette: navy #002B5C (Brent / main series), mid blue #4F81BD (WTI),
   gold #C9A227 (today's value), dark grey #595959 (text, secondary series), light grey #D9D9D9 (gridlines), on white.
-- Charts are **card charts**: the PNG is only the plot, drawn inside `plt.rc_context(style.rc_params())` at `CARD_SIZE`
-  (half-width) or `WIDE_SIZE` (Figure 1), 200 dpi. Plot style: y-axis numbers on the right, bottom baseline only, small unboxed
+- Charts are **card charts**: the image is only the plot, drawn inside `plt.rc_context(style.rc_params())` at `CARD_SIZE`
+  (half-width) or `WIDE_SIZE` (Figure 1), saved as **SVG** (`FILE_TYPE`) so they stay sharp at any size; clicking one on the
+  dashboard opens it full size. Lettering is saved as shapes and the files carry no date or random IDs, so unchanged charts don't change in Git. Plot style: y-axis numbers on the right, bottom baseline only, small unboxed
   key above the plot, each line's latest value in a coloured tag on the right axis (`value_tag`, with `hide_numbers_under_tags`),
   and a gold dot on the latest point.
 - Each plot function returns `chart_info(...)`: file, figure number, a takeaway title **generated from the data** (using
@@ -61,6 +63,10 @@ Anything written here applies to every task, so I don't have to repeat it.
   contract, never across a roll), Figure 1 full width, Figures 2-5 in pairs, a commentary sidebar, and the full numbers table.
 - Charts are saved once, in `docs/charts/`; the README, `output/summary.md` and the web page all link to the same files.
 - The web page's CSS takes its colours from `chart_style.py`, so the page and the charts always match.
+- On the website the charts are interactive (Plotly, approved by me): `interactive.py` uses the same `spreads.py` numbers and
+  house style; the card text still comes from `charts.py`; Plotly's JavaScript loads from cdn.plot.ly, pinned to the installed
+  version; each card links to its static SVG, which also shows if JavaScript is blocked. Each headline tile has a plain-English
+  explanation that changes with the data (`slope_meaning`, `percentile_meaning`, `physical_meaning`).
 - The README text between `<!-- LATEST-NUMBERS:START -->` and `<!-- LATEST-NUMBERS:END -->` is rewritten on every run. Don't edit it by hand.
 
 ## Commentary

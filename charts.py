@@ -3,13 +3,13 @@ charts.py - draws the tracker's five dashboard charts and saves them as PNG file
 (They live inside docs/ because GitHub Pages can only show files in that folder; the README
 and output/summary.md link to the same files, so each chart is stored once.)
 
-  1. curves.png                 - today's Brent and WTI curves, each against the same contracts one month earlier
-  2. brent_wti_spread.png       - the Brent-WTI spot spread (EIA) over the past two years
-  3. m1_m6_fixed.png            - today's M1 minus M6 contracts, held fixed, over the past six months
-  4. wti_m1m2_history.png       - a histogram of WTI M1-M2 from EIA history (2010-2024), with today's value marked
-  5. front_month_comparison.png - Brent and WTI front-month futures over the past year, and the gap between them
+  1. curves.svg                 - today's Brent and WTI curves, each against the same contracts one month earlier
+  2. brent_wti_spread.svg       - the Brent-WTI spot spread (EIA) over the past two years
+  3. m1_m6_fixed.svg            - today's M1 minus M6 contracts, held fixed, over the past six months
+  4. wti_m1m2_history.svg       - a histogram of WTI M1-M2 from EIA history (2010-2024), with today's value marked
+  5. front_month_comparison.svg - Brent and WTI front-month futures over the past year, and the gap between them
 
-Each image is a compact "card chart" in the house style (chart_style.py): just the plot. Each plot function
+Each image is a compact SVG "card chart" in the house style (chart_style.py): just the plot. Each plot function
 returns a dictionary with the file plus its numbered takeaway title (generated from the data), subtitle,
 source and any note, which report.py places in the dashboard card around the image.
 The calculations live in spreads.py; this file only draws.
@@ -37,7 +37,7 @@ ROLL_NOTE = ("Continuous front-month series switch to the next contract on roll 
 def chart_info(path, number, title, subtitle, source, note=""):
     """Bundle everything the dashboard needs to show one chart.
 
-    path     -- the saved PNG
+    path     -- the saved chart image (an SVG file)
     number   -- the figure number, e.g. 1
     title    -- the takeaway title, generated from the data
     subtitle -- what's plotted and the units
@@ -149,7 +149,7 @@ def plot_curves(curves, prices):
             if i == 0:                             # The left panel shares the right panel's scale...
                 ax.tick_params(labelright=False)   # ...so it doesn't repeat the numbers in the gap between panels
 
-        path = style.save(fig, CHART_DIR / "curves.png")  # Save the image
+        path = style.save(fig, CHART_DIR / "curves")  # Save the image
 
     as_of = ", ".join(f"{date:%d %b %Y} ({market})" for market, (_, date) in curves.items())  # Each curve's own date
     return chart_info(path, 1, curves_takeaway(curves),  # The takeaway title, from the data
@@ -191,7 +191,7 @@ def plot_brent_wti_spread(spot, years=2):
         style.hide_numbers_under_tags(ax, [latest, median], nudges)  # Hide axis numbers the tags would cover
         style.add_key(ax)                          # Small key above the plot
         style.format_dates(ax)                     # "Nov-26" dates
-        path = style.save(fig, CHART_DIR / "brent_wti_spread.png")  # Save the image
+        path = style.save(fig, CHART_DIR / "brent_wti_spread")  # Save the image
 
     return chart_info(path, 2, takeaway,           # The takeaway title, from the data
                       "Daily Brent (Dated, FOB) minus WTI (Cushing) spot price, $/bbl",  # Subtitle
@@ -238,7 +238,7 @@ def plot_fixed_m1_m6(curves, prices, months=6):
         style.hide_numbers_under_tags(ax, latest, nudges)  # Hide axis numbers the tags would cover
         style.add_key(ax)                          # Small key above the plot
         style.format_dates(ax)                     # "Jun-26" dates
-        path = style.save(fig, CHART_DIR / "m1_m6_fixed.png")  # Save the image
+        path = style.save(fig, CHART_DIR / "m1_m6_fixed")  # Save the image
 
     contracts = "; ".join(f"{m} {month_label(n)} minus {month_label(f)}" for m, (_, n, f, _) in lines.items())  # Which contracts
     as_of = ", ".join(f"{d:%d %b %Y} ({m})" for m, (_, _, _, d) in lines.items())  # Each market's own date
@@ -275,7 +275,7 @@ def plot_wti_m1m2_histogram(curves, wti_history):
                     xytext=(4, -2), textcoords="offset points",  # ...just to the right
                     ha="left", va="top", fontsize=8, fontweight="bold", color=style.DARK_GREY)  # Bold grey text
         ax.set_xlabel("WTI M1-M2 spread, $/bbl", fontsize=8)  # Here $/bbl runs along the bottom; the height counts days
-        path = style.save(fig, CHART_DIR / "wti_m1m2_history.png")  # Save the image
+        path = style.save(fig, CHART_DIR / "wti_m1m2_history")  # Save the image
 
     return chart_info(path, 4,                     # Figure 4...
                       f"WTI M1-M2 at {today:+.2f} $/bbl: at or above {pct['percentile']:.1f}% of days in 2010-24",  # ...takeaway title
@@ -327,7 +327,7 @@ def plot_front_month_comparison(brent_front, wti_front, years=1):
         style.value_tag(bottom, latest, f"{latest:+.2f}", style.DARK_GREY)  # Today's gap on the axis
         style.hide_numbers_under_tags(bottom, [latest])  # Hide the axis number the tag would cover
         style.format_dates(bottom)                 # "Nov-26" dates along the bottom
-        path = style.save(fig, CHART_DIR / "front_month_comparison.png")  # Save the image
+        path = style.save(fig, CHART_DIR / "front_month_comparison")  # Save the image
 
     return chart_info(path, 5, takeaway,           # The takeaway title, from the data
                       "Continuous front-month futures, $/bbl (top); Brent minus WTI, $/bbl (bottom)",  # Subtitle

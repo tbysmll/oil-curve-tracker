@@ -15,6 +15,7 @@ import html                                        # html.escape makes text safe
 import pandas as pd                                # pandas, for turning contract labels into dates
 from config import BASE_DIR, DOCS_DIR, REPO_URL    # Folders, and the GitHub link for the page footer
 import chart_style as style                        # The house palette and date format, so the page matches the charts
+from interactive import PLOTLY_SCRIPT              # The <script> line that loads Plotly's JavaScript for the interactive charts
 from spreads import (                              # The calculations
     curve_spreads,                                 # Both markets' time spreads, each with its date
     time_spreads,                                  # One curve's M1-M2, M1-M6, M1-M12
@@ -58,6 +59,7 @@ h1 { margin: 2px 0; font-size: 26px; color: var(--white); }            /* Page t
 .tile-unit { font-size: 12px; font-weight: 400; color: var(--dark-grey); margin-left: 3px; }  /* "$/bbl" after the number, small */
 .tile-detail { margin: 2px 0 0; font-size: 12px; font-weight: 700; }   /* The change or reading, e.g. "▲ +0.98 vs 30 Oct" */
 .tile-date { margin: 2px 0 0; font-size: 11px; }                       /* The data date, smallest */
+.tile-info { margin: 8px 0 0; padding-top: 7px; border-top: 1px solid var(--light-grey); font-size: 11.5px; line-height: 1.4; }  /* The plain-English explanation, under a hairline */
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }  /* Charts on the left, sidebar on the right */
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }  /* Charts in two columns */
 .card { border: 1px solid var(--light-grey); padding: 14px 16px 12px; background: var(--white); }  /* Every chart and panel sits in a card */
@@ -66,6 +68,9 @@ h1 { margin: 2px 0; font-size: 26px; color: var(--white); }            /* Page t
 .card h3 { margin: 3px 0 2px; font-size: 15px; line-height: 1.3; color: var(--navy); }  /* The takeaway title */
 .sub { margin: 0 0 8px; font-size: 12px; }                             /* What's plotted and the units */
 .card img { display: block; width: 100%; height: auto; }               /* The chart fills its card */
+.card > a { display: block; cursor: zoom-in; }                         /* A static chart is clickable, with a magnifier cursor */
+.plot { width: 100%; }                                                 /* Interactive charts fill their card */
+.hint { font-style: italic; }                                          /* "Hover for exact values..." in italics */
 .foot { margin: 6px 0 0; font-size: 11px; }                            /* Note and source lines under the chart */
 .side h2, .numbers h2 { margin: 0 0 8px; font-size: 15px; color: var(--navy); padding-bottom: 6px; border-bottom: 2px solid var(--navy); }  /* Panel headings */
 .side .card + .card { margin-top: 20px; }                              /* Space between the sidebar's cards */
@@ -154,6 +159,55 @@ def change_text(change, since):
     return f"{arrow} {change:+.2f} vs {since:%d %b}"  # e.g. "▲ +0.98 vs 30 Oct"
 
 
+def slope_meaning(curve, m1m12):
+    """Explain a market's M1-M12 spread in one sentence for its tile.
+
+    curve -- the market's curve from futures.curve_on() (for the two contract months)
+    m1m12 -- that curve's M1-M12 row from time_spreads(), with "value" and "structure"
+    Returns the sentence, which changes with the data (backwardation, contango or flat).
+    """
+    near = pd.Timestamp(curve.index[0]).strftime(style.DATE_FORMAT)   # The front month, e.g. "Jan-27"
+    far = pd.Timestamp(curve.index[11]).strftime(style.DATE_FORMAT)   # The 12th month, e.g. "Dec-27"
+    value = abs(m1m12["value"])                    # The size of the gap, without its sign
+    if m1m12["structure"] == "backwardation":      # Nearer contract dearer...
+        return (f"Oil for {near} delivery costs {value:.2f} $/bbl more than for {far}. That's backwardation: "  # ...say so...
+                "buyers pay up for oil now, a sign of tight supply today.")  # ...and what it signals
+    if m1m12["structure"] == "contango":           # Nearer contract cheaper...
+        return (f"Oil for {near} delivery costs {value:.2f} $/bbl less than for {far}. That's contango: "  # ...say so...
+                "plenty of oil now, so later barrels cost more (storage and financing).")  # ...and what it signals
+    return (f"{near} and {far} are within $0.10 of each other: a flat curve, "  # Within the neutral band...
+            "with no real premium for oil now over oil in a year.")  # ...so no clear signal
+
+
+def percentile_meaning(percentile):
+    """Explain the WTI M1-M2 percentile in one sentence for its tile.
+
+    percentile -- today's percentile against 2010-2024 (0-100)
+    Returns the sentence, which changes with the data.
+    """
+    if percentile >= 90:                           # Near the top of its history...
+        reading = "historically tight: oil for this month is in unusually high demand"  # ...very strong backwardation
+    elif percentile <= 10:                         # Near the bottom...
+        reading = "historically loose: unusually deep contango, with plenty of oil now"  # ...very weak front end
+    else:                                          # Anywhere in between...
+        reading = "within its normal range"        # ...nothing unusual
+    return (f"WTI front month minus the next month. Today's spread is at or above {percentile:.0f}% of "  # What it is...
+            f"days from 2010 to 2024: {reading}.")  # ...and how unusual today is
+
+
+def physical_meaning(spread):
+    """Explain Dated Brent minus the front-month future in one sentence for its tile.
+
+    spread -- Dated Brent minus the front-month Brent future, $/bbl
+    Returns the sentence, which changes with the sign of the spread.
+    """
+    if spread > 0:                                 # Physical dearer than futures...
+        sign = "Positive: buyers are paying a premium to get physical barrels quickly."  # ...prompt oil is scarce
+    else:                                          # Physical cheaper (or equal)...
+        sign = "Negative: prompt physical barrels are cheaper than futures, so prompt oil isn't scarce."  # ...no scramble for barrels
+    return f"Physical Brent cargoes minus the nearest Brent future, on the latest date both have. {sign}"  # What it is, then the reading
+
+
 def headline_tiles(curves, prices, spot, brent_future, wti_history):
     """The six headline numbers shown as tiles across the top of the dashboard.
 
@@ -162,8 +216,8 @@ def headline_tiles(curves, prices, spot, brent_future, wti_history):
     spot         -- the table from eia.fetch_spot()
     brent_future -- the Series from futures.front_month_continuous("Brent")
     wti_history  -- the table from eia.fetch_wti_futures_history()
-    Returns a list of dictionaries with the keys label, value, unit, detail and date, all as text.
-    Day-on-day changes for M1 compare the SAME contract on its previous trading day, so a contract
+    Returns a list of dictionaries with the keys label, value, unit, detail, date and info (a plain-English
+    explanation), all as text. Day-on-day changes for M1 compare the SAME contract on its previous trading day, so a contract
     roll can never show up as a price move.
     """
     tiles = []                                     # The finished tiles get collected here
@@ -177,6 +231,8 @@ def headline_tiles(curves, prices, spot, brent_future, wti_history):
             "unit": "$/bbl",                       # Its unit
             "detail": change_text(latest - previous, history.index[-2]),  # The day-on-day change, same contract
             "date": f"{date:%d %b %Y}",            # The data date
+            "info": (f"Price of the nearest {market} futures contract, for delivery in "  # What the number is...
+                     f"{pd.Timestamp(contract):%B %Y}. The change compares the same contract with its previous close."),  # ...and how the change is measured
         })
 
     brent_curve, brent_date = curves["Brent"]      # Tile 3: Brent's curve slope
@@ -187,6 +243,7 @@ def headline_tiles(curves, prices, spot, brent_future, wti_history):
         "unit": "$/bbl",                           # Its unit
         "detail": brent_m1m12["structure"],        # backwardation / contango / flat
         "date": f"{brent_date:%d %b %Y}",          # The data date
+        "info": slope_meaning(brent_curve, brent_m1m12),  # What the slope means today, in words
     })
 
     wti_curve, wti_date = curves["WTI"]            # Tile 4: WTI's front spread against history
@@ -198,6 +255,7 @@ def headline_tiles(curves, prices, spot, brent_future, wti_history):
         "unit": "$/bbl",                           # Its unit
         "detail": f"percentile {pct['percentile']:.1f} vs 2010-24",  # How unusual it is
         "date": f"{wti_date:%d %b %Y}",            # The data date
+        "info": percentile_meaning(pct["percentile"]),  # What the percentile means, in words
     })
 
     spot_spread = brent_wti_spot_history(spot)     # Tile 5: the Brent-WTI spot spread, every day both exist
@@ -207,6 +265,9 @@ def headline_tiles(curves, prices, spot, brent_future, wti_history):
         "unit": "$/bbl",                           # Its unit
         "detail": change_text(spot_spread.iloc[-1] - spot_spread.iloc[-2], spot_spread.index[-2]),  # Change on EIA's previous day
         "date": f"{spot_spread.index[-1]:%d %b %Y}",  # EIA's latest day
+        "info": ("Physical Brent (seaborne crude) minus WTI (US inland crude at Cushing). Usually a few dollars, "  # What it is...
+                 "roughly the cost of getting US crude to export markets; wider means seaborne crude is scarcer. "  # ...what moves it...
+                 "EIA publishes a few days late."),  # ...and why its date is older
     })
 
     db = dated_brent_vs_future(spot, brent_future) # Tile 6: physical vs futures, on the latest date both sources have
@@ -216,6 +277,7 @@ def headline_tiles(curves, prices, spot, brent_future, wti_history):
         "unit": "$/bbl",                           # Its unit
         "detail": "spot above future" if db["spread"] > 0 else "spot below future",  # Plain-English reading
         "date": f"{db['date']:%d %b %Y}",          # The shared date
+        "info": physical_meaning(db["spread"]),    # What the sign means, in words
     })
     return tiles                                   # Hand back all six
 
@@ -285,13 +347,15 @@ def read_commentary():
     return paragraphs                              # Hand back the paragraphs
 
 
-def write_html(rows, charts, tiles, run_time):
+def write_html(rows, charts, tiles, run_time, interactive=None):
     """Write docs/index.html: the dashboard.
 
     rows     -- from summary_rows()
     charts   -- the list of chart details from charts.save_all_charts()
     tiles    -- from headline_tiles()
     run_time -- when this run happened, shown in the masthead
+    interactive -- optional: figure number -> Plotly HTML snippet from interactive.build_interactive(); charts
+                   without one are shown as their static SVG
     Returns the path of the saved page.
     Layout: navy masthead, six headline tiles, then a chart grid (Figure 1 full width, the rest in pairs) beside a
     commentary sidebar, then the full numbers table. Every piece of text goes through html.escape, so characters
@@ -300,6 +364,7 @@ def write_html(rows, charts, tiles, run_time):
     esc = html.escape                              # Short name for the escaping function, used many times below
     version = f"{run_time:%Y%m%d%H%M}"             # A stamp added to each chart's address so browsers fetch the new image, not an old saved copy
     paragraphs = read_commentary()                 # Toby's commentary, if any
+    interactive = interactive or {}                # No interactive charts given: use an empty dictionary (every chart shown static)
 
     page = [                                       # The page is built up here, one line at a time
         "<!DOCTYPE html>",                         # Tells the browser this is a modern HTML page
@@ -310,6 +375,7 @@ def write_html(rows, charts, tiles, run_time):
         "<title>Oil Curve Tracker</title>",        # The text on the browser tab
         '<meta name="description" content="Daily Brent and WTI futures curves, spreads and backwardation, with commentary.">',  # Summary for search engines
         f"<style>{STYLE}</style>",                 # The styling defined at the top of this file
+        PLOTLY_SCRIPT if interactive else "",      # Load Plotly's JavaScript once, but only if there are interactive charts
         "</head>",                                 # End of the head
         "<body>",                                  # The visible page starts here
         '<header class="masthead"><div class="wrap">',  # The navy band across the top
@@ -330,6 +396,7 @@ def write_html(rows, charts, tiles, run_time):
             f'<p class="tile-value">{esc(tile["value"])}<span class="tile-unit">{esc(tile["unit"])}</span></p>',  # e.g. "104.77 $/bbl"
             f'<p class="tile-detail">{esc(tile["detail"])}</p>',  # e.g. "▼ -8.66 vs 30 Oct"
             f'<p class="tile-date">{esc(tile["date"])}</p>',  # e.g. "02 Nov 2026"
+            f'<p class="tile-info">{esc(tile["info"])}</p>',  # What it measures and what today's number means
             "</div>",                              # End of the tile
         ]
     page += ["</section>", '<div class="layout">', '<div class="charts">']  # End the tiles; start the charts grid beside the sidebar
@@ -337,13 +404,23 @@ def write_html(rows, charts, tiles, run_time):
     for chart in charts:                           # One card per chart
         wide = " wide" if chart["number"] == 1 else ""  # Figure 1 spans both columns
         alt = f"Figure {chart['number']}: {chart['title']}. {chart['subtitle']}"  # Description read aloud by screen readers
-        page += [                                  # The card: label, takeaway title, subtitle, image, note, source
+        static = f"charts/{chart['path'].name}?v={version}"  # Address of the static SVG version of this chart
+        image = f'<img src="{static}" alt="{esc(alt)}" loading="lazy">'  # The static chart as an image
+        page += [                                  # The card: label, takeaway title, subtitle, chart, note, source
             f'<article class="card{wide}">',       # Start of the card
             f'<p class="fig">Figure {chart["number"]}</p>',  # "FIGURE 1"
             f"<h3>{esc(chart['title'])}</h3>",     # The takeaway title, generated from the data
             f'<p class="sub">{esc(chart["subtitle"])}</p>',  # What's plotted and the units
-            f'<img src="charts/{chart["path"].name}?v={version}" alt="{esc(alt)}" loading="lazy">',  # The chart image
         ]
+        if chart["number"] in interactive:         # An interactive version exists...
+            page += [                              # ...so show it, keeping the static one as a backup
+                f'<div class="plot">{interactive[chart["number"]]}</div>',  # The Plotly chart (hover, drag to zoom)
+                f"<noscript>{image}</noscript>",   # If the browser blocks JavaScript, show the static chart instead
+                f'<p class="foot hint">Hover for exact values; drag to zoom in, double-click to reset. '  # How to use it...
+                f'<a href="{static}" target="_blank">Static version</a></p>',  # ...and a link to the SVG
+            ]
+        else:                                      # No interactive version: the static chart, clickable to open full size
+            page.append(f'<a href="{static}" target="_blank" title="Open full size">{image}</a>')  # Opens in a new tab
         if chart["note"]:                          # If the chart has a note...
             page.append(f'<p class="foot">Note: {esc(chart["note"])}</p>')  # ...show it under the image
         page += [f'<p class="foot">Source: {esc(chart["source"])}</p>', "</article>"]  # Source line, then end the card
