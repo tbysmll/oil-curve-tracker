@@ -22,10 +22,46 @@ Anything written here applies to every task, so I don't have to repeat it.
 6. **Never print, log or hard-code the API key.** It lives in `.env`, which Git ignores.
 
 ## How the project is structured
-- `config.py` — all settings (folders, number of contracts, start dates, the "flat" band). Change settings here only.
+- `config.py` — all settings (folders, number of contracts, start dates, the "flat" band, the freshness limit, URLs). Change settings here only.
 - `eia.py` — official EIA data: Brent and WTI **spot** prices (current), and WTI futures contracts 1-4 (history only).
-- `futures.py` — today's Brent and WTI **futures curves** from Yahoo Finance, plus a daily snapshot store.
-- To build: `spreads.py` (calculations), `charts.py` (charts), `main.py` (runs everything, writes `output/`).
+- `futures.py` — today's Brent and WTI **futures curves** from Yahoo Finance, the continuous front-month series, and the daily snapshot store.
+- `spreads.py` — every calculation (time spreads and labels, Brent-WTI, Dated Brent vs future, percentile, histories). No downloads.
+- `chart_style.py` — the house style for every chart and the web page: palette, font, size, layout and labelling helpers.
+- `charts.py` — draws the five charts into `docs/charts/`. Drawing only; the numbers come from `spreads.py`.
+- `report.py` — builds the numbers table once, then the Markdown summary and the web page `docs/index.html`.
+- `main.py` — runs everything: download, check, calculate, chart, write reports, and only then save the snapshot.
+- `commentary.txt` — my own commentary, shown on the web page.
+- `test_curves.py` — quick check that both curves download and build.
+- `.github/workflows/daily-update.yml` — runs `main.py` on GitHub every weekday and commits the results.
+
+## How it runs
+- **Locally:** activate `.venv`, then `python main.py`. It writes `data/curve_snapshots.csv`, `output/summary.md`,
+  `docs/charts/*.png`, `docs/index.html` and the README's "Latest numbers" section.
+- **On GitHub:** the workflow runs at 22:30 UK time on weekdays (two cron lines, 21:30 and 22:30 UTC, plus a check of the
+  UK clock, because GitHub's timetable only understands UTC). It reads the EIA key from the repository secret `EIA_API_KEY`
+  and commits the outputs as `github-actions[bot]`. It can also be run by hand: Actions → Daily curve update → Run workflow.
+- **Website:** GitHub Pages publishes the `docs/` folder at https://tbysmll.github.io/oil-curve-tracker/
+- **Before I push anything:** `git pull --rebase` first, because the bot commits every weekday night.
+- If `main.py` runs during US trading hours, the snapshot holds live prices; that night's run replaces them with the close.
+- Any failed download or check stops the run **before anything is saved**, so the workflow never commits bad data. Keep it that way.
+- The workflow checks out `ref: main` and uses `git pull --rebase -X theirs`, so overlapping runs (or a push during a run) don't
+  fail on conflicts in the generated files. Safe because the bot only ever commits generated files. Don't remove either.
+
+## Charts and the web page
+- All styling lives in `chart_style.py`. Use only its palette: navy #002B5C (Brent / main series), mid blue #4F81BD (WTI),
+  gold #C9A227 (today's value), dark grey #595959 (text, secondary series), light grey #D9D9D9 (gridlines), on white.
+- Every chart: drawn inside `plt.rc_context(style.rc_params())`, 10 x 5.5 in at 200 dpi, a numbered bold title that states
+  the takeaway **generated from the data** (using `NEUTRAL_BAND` for "up"/"down"/"little changed"), a grey subtitle with what's
+  plotted and the units, lines labelled at their right-hand end (no legend box), today's value as a gold dot, and a source line
+  with the data date(s).
+- Charts are saved once, in `docs/charts/`; the README, `output/summary.md` and the web page all link to the same files.
+- The web page's CSS takes its colours from `chart_style.py`, so the page and the charts always match.
+- The README text between `<!-- LATEST-NUMBERS:START -->` and `<!-- LATEST-NUMBERS:END -->` is rewritten on every run. Don't edit it by hand.
+
+## Commentary
+- `commentary.txt` is **my own words**. Claude may draft commentary in the chat for me to learn from, but never writes into this file.
+- A Claude routine ("Monday oil commentary draft") drafts it every Monday at 08:00 UK time from the public repo; I rewrite it myself.
+- Commentary must describe only what the numbers show, with a date next to every number. No invented news or causes.
 
 ## Data facts learned the hard way (don't "fix" these)
 - EIA's futures series (RCLC1-4) **stopped updating on 5 April 2024**. Use them for long-run history only.
@@ -41,6 +77,14 @@ Anything written here applies to every task, so I don't have to repeat it.
   never each source's own latest date (e.g. Dated Brent minus the front-month future). Calculations within one source
   (a curve's own spreads, Brent-WTI spot from EIA) can use that source's latest date. Every number in the output must
   show the date it's from. Exception: today's WTI M1-M2 is deliberately compared with the 2010-2024 EIA history.
+- Yahoo contracts are downloaded **one at a time** (`threads=False`). Parallel downloads clash over yfinance's cache
+  ("database is locked") and silently lose a contract, which would shift every spread. `check_consecutive()` is the safety net.
+- The two continuous front-month series are usually **different delivery months**: Brent's front month is about one month
+  further out than WTI's (e.g. on 2 Nov 2026, BZ=F was Jan-27 and CL=F was Dec-26). So their gap isn't a same-month comparison.
+- `requests`' own error messages include the full web address, **which contains the API key**. `eia.py` checks replies itself
+  and raises its own errors; never go back to `raise_for_status()`.
+- Matplotlib reads text between two `$` signs as a maths formula, which garbles "$/bbl ... $/bbl". The house style turns
+  this off (`text.parse_math: False`).
 
 ## Definitions used in this project
 - **M1, M2 ... M12**: the 1st, 2nd ... 12th contracts along the curve, nearest delivery first.

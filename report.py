@@ -11,16 +11,21 @@ It's one self-contained HTML file with its styling built in and no JavaScript, s
 
 import html                                        # html.escape makes text safe to place inside a web page
 from config import BASE_DIR, DOCS_DIR, REPO_URL    # Folders, and the GitHub link for the page footer
+import chart_style as style                        # The house palette, so the web page matches the charts
 from spreads import curve_spreads, brent_wti_spot, dated_brent_vs_future, wti_m1m2_percentile  # The calculations
 
 COMMENTARY_FILE = BASE_DIR / "commentary.txt"      # Toby's hand-written commentary
 REPORT_FILE = DOCS_DIR / "index.html"              # The web page; "index.html" is the file a website shows by default
 
-CHART_CAPTIONS = {                                 # A one-line caption for each chart, keyed by its file name
+CHART_CAPTIONS = {                                 # A one-line description of each chart, keyed by its file name, used as the
+                                                   # image's alt text (read aloud by screen readers; the visible title is in the image)
     "curves": "Each futures curve today (solid) against the same contracts one month earlier (dashed).",  # Chart 1
     "brent_wti_spread": "Brent minus WTI spot price (EIA) over the past two years.",  # Chart 2
     "m1_m6_fixed": "Today's M1 minus M6 contracts, held fixed, over the past six months.",  # Chart 3
     "wti_m1m2_history": "How often each WTI M1-M2 value occurred from 2010 to 2024, with today's value marked.",  # Chart 4
+    "front_month_comparison": "Brent and WTI front-month futures over the past year (top) and Brent minus WTI (bottom). "  # Chart 5...
+                              "These continuous series switch contracts on roll days, so a sudden jump on those days "  # ...with the
+                              "isn't a real price move.",  # ...roll-day warning
 }                                                  # End of the captions
 
 NOTES = [                                          # Caveats shown under the numbers in every report
@@ -29,26 +34,35 @@ NOTES = [                                          # Caveats shown under the num
     "EIA spot prices run a few days behind; the WTI percentile deliberately compares today with 2010-2024.",  # EIA lag and the agreed exception
 ]                                                  # End of the notes
 
-# The page's styling (CSS). Each line sets how one kind of element looks.
-STYLE = """
-body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #222; background: #fff; line-height: 1.55; } /* Clean system font, dark text on white */
-main { max-width: 920px; margin: 0 auto; padding: 32px 20px 48px; }  /* One centred column, comfortable to read */
-h1 { margin: 0 0 4px; font-size: 1.9rem; }                            /* Page title */
-h2 { margin: 40px 0 12px; font-size: 1.3rem; padding-bottom: 6px; border-bottom: 1px solid #ddd; }  /* Section headings with a thin line under them */
-.subtitle, .meta, .note { color: #555; }                               /* Secondary text in mid grey */
-.meta, .note { font-size: 0.9rem; }                                    /* ...and slightly smaller */
+# The page's styling (CSS), matching the charts' bank research-note look.
+# PALETTE turns chart_style's colours into CSS "variables" (e.g. --navy), so the page and the charts share
+# one palette: change a colour in chart_style.py and both follow. {{ and }} are how an f-string writes { and }.
+PALETTE = (f":root {{ --navy: {style.NAVY}; --mid-blue: {style.MID_BLUE}; --gold: {style.GOLD}; "  # The five house colours...
+           f"--dark-grey: {style.DARK_GREY}; --light-grey: {style.LIGHT_GREY}; --white: {style.WHITE}; }}")  # ...plus white
+
+# Each line below sets how one kind of element looks; var(--navy) means "the navy from the palette above"
+STYLE = PALETTE + """
+body { margin: 0; font-family: Arial, Helvetica, "Liberation Sans", sans-serif; color: var(--dark-grey); background: var(--white); line-height: 1.55; } /* Same font and text colour as the charts */
+.masthead { background: var(--navy); border-bottom: 4px solid var(--gold); }  /* Navy band across the top, with a gold rule under it */
+.masthead-inner { max-width: 920px; margin: 0 auto; padding: 22px 20px 18px; }  /* Lines the band's text up with the column below */
+.masthead .label { margin: 0; color: var(--gold); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }  /* Small gold label above the title */
+h1 { margin: 4px 0; font-size: 1.9rem; color: var(--white); }          /* Page title, white on navy */
+.masthead .subtitle { margin: 0; color: var(--light-grey); }           /* Subtitle, light grey on navy */
+main { max-width: 920px; margin: 0 auto; padding: 8px 20px 48px; }     /* One centred column, comfortable to read */
+.meta { margin: 18px 0 0; font-size: 0.9rem; }                         /* "Last updated" line under the band */
+h2 { margin: 40px 0 12px; font-size: 1.25rem; color: var(--navy); padding-bottom: 6px; border-bottom: 2px solid var(--navy); }  /* Navy section headings with a navy rule */
+.note { font-size: 0.9rem; }                                           /* Small explanatory notes */
 .table-wrap { overflow-x: auto; }                                      /* On a phone the table scrolls sideways instead of squashing */
 table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }  /* Full-width table with single-line borders */
-th, td { padding: 7px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid #e5e5e5; }  /* Cell spacing and faint row lines */
-th { background: #f6f6f6; font-weight: 600; }                          /* Light grey header row */
+th, td { padding: 7px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--light-grey); }  /* Cell spacing and light grey row lines */
+th { background: var(--navy); color: var(--white); font-weight: 700; } /* Navy header row with white text */
 td:first-child { min-width: 8em; }                                     /* Wide enough that "Brent M1-M12" never breaks at its hyphen */
 .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }  /* Numbers right-aligned so the decimals line up */
 .commentary p { margin: 0 0 14px; }                                    /* Space between commentary paragraphs */
 figure { margin: 28px 0; }                                             /* Space around each chart */
-figure img { width: 100%; height: auto; border: 1px solid #eee; }      /* Charts fill the column width */
-figcaption { margin-top: 6px; color: #555; font-size: 0.9rem; }        /* Caption under each chart */
-footer { margin-top: 48px; color: #666; font-size: 0.85rem; }          /* Small grey footer */
-a { color: #1f4e79; }                                                  /* Links in the Brent blue */
+figure img { display: block; width: 100%; height: auto; border: 1px solid var(--light-grey); }  /* Charts fill the column, with a hairline frame */
+footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid var(--light-grey); font-size: 0.85rem; }  /* Small footer under a light rule */
+a { color: var(--mid-blue); }                                          /* Links in the mid blue */
 """
 
 
@@ -185,13 +199,16 @@ def write_html(rows, chart_paths, run_time):
         f"<style>{STYLE}</style>",                 # The styling defined at the top of this file
         "</head>",                                 # End of the head
         "<body>",                                  # The visible page starts here
-        "<main>",                                  # The main content column
-        "<header>",                                # The top of the page
+        '<header class="masthead">',               # The navy band across the top (full width, so it sits outside <main>)
+        '<div class="masthead-inner">',            # Keeps the band's text lined up with the column below
+        '<p class="label">Crude oil | Daily curve monitor</p>',  # Small gold label above the title
         "<h1>Oil Curve Tracker</h1>",              # Page title
         '<p class="subtitle">The shape of the Brent and WTI crude oil futures curves, updated every weekday at 22:30 UK time.</p>',  # What the page is
+        "</div>",                                  # End of the band's text
+        "</header>",                               # End of the band
+        "<main>",                                  # The main content column
         f'<p class="meta">Last updated {run_time:%d %b %Y, %H:%M} UK time. Prices in $/bbl. '  # When it was made...
         "Every number shows the date its prices come from.</p>",  # ...and the date rule
-        "</header>",                               # End of the top section
         "<section>",                               # The numbers section
         "<h2>Today's numbers</h2>",                # Its heading
         '<div class="table-wrap">',                # Wrapper that lets the table scroll sideways on a phone
@@ -217,11 +234,10 @@ def write_html(rows, chart_paths, run_time):
 
     page += ["<section>", "<h2>Charts</h2>"]       # The charts section and its heading
     for path in chart_paths:                       # Each chart in turn
-        caption = CHART_CAPTIONS.get(path.stem, "")  # Its caption ("" if it doesn't have one)
-        page += [                                  # A figure: the image with its caption underneath
+        caption = CHART_CAPTIONS.get(path.stem, "")  # Its description ("" if it doesn't have one)
+        page += [                                  # A figure holding the image (its title, subtitle and source are inside the image)
             "<figure>",                            # Start of the figure
-            f'<img src="charts/{path.name}?v={version}" alt="{esc(caption)}" loading="lazy">',  # The image; alt text describes it for screen readers
-            f"<figcaption>{esc(caption)}</figcaption>",  # The caption
+            f'<img src="charts/{path.name}?v={version}" alt="{esc(caption)}" loading="lazy">',  # The image; the alt text describes it for screen readers
             "</figure>",                           # End of the figure
         ]
     page.append("</section>")                      # End of the charts section

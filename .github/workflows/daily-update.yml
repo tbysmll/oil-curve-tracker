@@ -50,6 +50,9 @@ jobs:                                        # A workflow is made of jobs; this 
     steps:                                   # The commands this job runs, in order
       - name: Get the code                   # Step 1
         uses: actions/checkout@v5            # GitHub's ready-made step that downloads this repository onto the machine
+        with:                                # Options for that step
+          ref: main                          # The latest main when this run STARTS (not when it was triggered), so a run
+                                             # that waited in the queue begins from the previous run's results
 
       - name: Install Python                 # Step 2
         uses: actions/setup-python@v6        # GitHub's ready-made step that installs Python
@@ -74,6 +77,9 @@ jobs:                                        # A workflow is made of jobs; this 
             echo "No changes to commit."                      # ...say so and finish without an empty commit
           else                                                # Otherwise...
             git commit -m "Daily curve update $(date +%Y-%m-%d)"   # ...commit, with today's UK date in the message
-            git pull --rebase                                 # Pick up anything pushed since this run started
+            git pull --rebase -X theirs                       # Pick up anything pushed since this run started; if the same
+                                                              # generated lines changed on both sides, keep THIS run's fresh
+                                                              # version ("theirs" = the commit being replayed, i.e. the bot's).
+                                                              # Safe because this commit only ever contains generated files.
             git push                                          # Send the commit back to GitHub
           fi                                                  # End of the if/else

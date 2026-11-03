@@ -16,7 +16,7 @@ and commits the day's curves, charts and the table below.
 
 <!-- LATEST-NUMBERS:START -->
 
-Run at 03 Nov 2026 11:02 UK time. Prices in $/bbl. Every row shows the date its prices come from.
+Run at 03 Nov 2026 11:25 UK time. Prices in $/bbl. Every row shows the date its prices come from.
 
 ### Today's numbers
 
@@ -25,12 +25,12 @@ Run at 03 Nov 2026 11:02 UK time. Prices in $/bbl. Every row shows the date its 
 | Brent M1-M2 | +3.07 | backwardation | 02 Nov 2026 | 2027-01 minus 2027-02 |
 | Brent M1-M6 | +11.71 | backwardation | 02 Nov 2026 | 2027-01 minus 2027-06 |
 | Brent M1-M12 | +19.79 | backwardation | 02 Nov 2026 | 2027-01 minus 2027-12 |
-| WTI M1-M2 | +1.52 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-01 |
-| WTI M1-M6 | +8.88 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-05 |
-| WTI M1-M12 | +16.94 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-11 |
+| WTI M1-M2 | +1.56 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-01 |
+| WTI M1-M6 | +9.20 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-05 |
+| WTI M1-M12 | +17.37 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-11 |
 | Brent-WTI spot spread (EIA) | +19.73 | location spread | 27 Oct 2026 | Brent 123.10 minus WTI 103.37 |
 | Dated Brent minus front-month future | +9.22 | spot above future | 27 Oct 2026 (latest date both sources have) | EIA 123.10 minus Yahoo BZ=F 113.88 |
-| WTI M1-M2 percentile vs EIA history | 96.6 | percentile (not $/bbl) | today 03 Nov 2026; history 04 Jan 2010 to 05 Apr 2024 | 3,476 of 3,598 days at or below +1.52 |
+| WTI M1-M2 percentile vs EIA history | 96.7 | percentile (not $/bbl) | today 03 Nov 2026; history 04 Jan 2010 to 05 Apr 2024 | 3,478 of 3,598 days at or below +1.56 |
 
 ### Charts
 
@@ -41,6 +41,8 @@ Run at 03 Nov 2026 11:02 UK time. Prices in $/bbl. Every row shows the date its 
 ![m1_m6_fixed](docs/charts/m1_m6_fixed.png)
 
 ![wti_m1m2_history](docs/charts/wti_m1m2_history.png)
+
+![front_month_comparison](docs/charts/front_month_comparison.png)
 
 ### Notes
 
@@ -64,7 +66,8 @@ Run at 03 Nov 2026 11:02 UK time. Prices in $/bbl. Every row shows the date its 
 | `eia.py` | Downloads EIA spot prices and WTI futures history |
 | `futures.py` | Builds today's Brent and WTI curves; saves a daily snapshot to `data/` |
 | `spreads.py` | Calculates time spreads, the Brent-WTI spread, Dated Brent vs futures and the WTI M1-M2 percentile |
-| `charts.py` | Draws the four charts into `docs/charts/` |
+| `charts.py` | Draws the five charts into `docs/charts/`, including Brent vs WTI front-month futures |
+| `chart_style.py` | The house style shared by every chart and the web report: palette, font, layout, labels |
 | `report.py` | Builds the numbers table, the Markdown summary and the web report `docs/index.html` |
 | `main.py` | Runs everything: snapshot, charts, `output/summary.md`, the web report and this README's latest numbers |
 | `commentary.txt` | My own commentary, shown on the web report |

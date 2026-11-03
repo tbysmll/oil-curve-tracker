@@ -128,6 +128,21 @@ def brent_wti_spot_history(spot):
     return (both["brent_spot"] - both["wti_spot"]).round(2)  # Brent minus WTI each day, rounded to cents
 
 
+def front_month_spread(brent_front, wti_front):
+    """Brent and WTI front-month futures side by side, plus Brent minus WTI, on days both have a price.
+
+    brent_front -- the Series from futures.front_month_continuous("Brent") (Yahoo's BZ=F)
+    wti_front   -- the Series from futures.front_month_continuous("WTI") (Yahoo's CL=F)
+    Returns a table with columns brent, wti and spread ($/bbl), one row per date both traded.
+    Both come from Yahoo, but either can have a day missing (e.g. a holiday on one exchange only),
+    so we keep only shared days: each spread value then compares two prices from the same day.
+    """
+    both = pd.concat([brent_front.rename("brent"), wti_front.rename("wti")], axis=1)  # Line the two up by date, one column each
+    both = both.dropna()                           # Keep only days where BOTH have a price
+    both["spread"] = (both["brent"] - both["wti"]).round(2)  # Brent minus WTI each day, rounded to cents
+    return both                                    # Hand back the table
+
+
 def fixed_contract_spread(prices, near, far, end, months=6):
     """The daily spread between two specific contracts, held fixed, over the `months` months up to `end`.
 

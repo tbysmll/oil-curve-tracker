@@ -45,9 +45,9 @@ MONTH_CODES = "FGHJKMNQUVXZ"      # Position 0 is January, position 11 is Decemb
 # The two markets we track. "root" is the start of each contract's ticker on Yahoo Finance,
 # e.g. Brent January 2027 is "BZ" + "F" + "27" + ".NYM" = BZF27.NYM
 MARKETS = {
-    "Brent": {"root": "BZ", "exchange": "NYM", "colour": "#1f4e79"},  # NYMEX Brent Last Day Financial; settles against ICE Brent
-    "WTI":   {"root": "CL", "exchange": "NYM", "colour": "#c55a11"},  # NYMEX WTI Light Sweet Crude, delivered at Cushing, Oklahoma
-}
+    "Brent": {"root": "BZ", "exchange": "NYM"},  # NYMEX Brent Last Day Financial; settles against ICE Brent
+    "WTI":   {"root": "CL", "exchange": "NYM"},  # NYMEX WTI Light Sweet Crude, delivered at Cushing, Oklahoma
+}                                 # (Chart colours live in chart_style.py, with the rest of the chart styling)
 
 CURVE_MONTHS = 12            # How many contracts along the curve to track: M1 (front month) out to M12
 HISTORY_START = "2025-01-01" # How far back to download each live contract's price history

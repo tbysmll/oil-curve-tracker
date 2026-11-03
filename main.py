@@ -5,7 +5,7 @@ Run it with:  python main.py
 It writes:
   data/curve_snapshots.csv  - today's Brent and WTI curves added to the daily history
   output/summary.md         - a table of today's numbers, each with the date its prices come from, plus the charts
-  docs/charts/*.png         - the four charts (see charts.py)
+  docs/charts/*.png         - the five charts (see charts.py)
   docs/index.html           - the web report published by GitHub Pages, with Toby's commentary (see report.py)
   README.md                 - the "Latest numbers" section is replaced with today's table and charts
 
@@ -21,7 +21,7 @@ import datetime as dt                              # dt gives today's date and t
 from config import MARKETS, OUTPUT_DIR, BASE_DIR, STALE_AFTER_DAYS  # Markets, folders, and the freshness limit
 from eia import fetch_spot, fetch_wti_futures_history  # EIA downloads: spot prices and WTI futures history
 from futures import download_contracts, curve_on, save_snapshot, front_month_continuous, SNAPSHOT_FILE  # Yahoo downloads and the snapshot store
-from charts import save_all_charts                 # Draws and saves all four charts
+from charts import save_all_charts                 # Draws and saves all five charts
 from report import summary_rows, summary_markdown, write_html  # Turns the results into the table, Markdown and web page
 
 README_FILE = BASE_DIR / "README.md"               # The project's front page on GitHub
@@ -83,10 +83,11 @@ def main():
     print("Downloading EIA spot prices and WTI futures history...")  # Progress message
     spot = fetch_spot()                            # EIA Brent and WTI spot prices since 2010 (stops on a bad key or outage)
     brent_future = front_month_continuous("Brent") # Yahoo's continuous Brent front-month series (stops if empty)
+    wti_future = front_month_continuous("WTI")     # Yahoo's continuous WTI front-month series, for chart 5 (stops if empty)
     wti_history = fetch_wti_futures_history()      # EIA WTI contracts 1-4, 2010 to April 2024
 
     print("Making charts and writing the reports...")  # Progress message
-    chart_paths = save_all_charts(curves, prices, spot, wti_history)  # Draw and save all four charts into docs/charts/
+    chart_paths = save_all_charts(curves, prices, spot, wti_history, brent_future, wti_future)  # Draw and save all five charts into docs/charts/
     rows = summary_rows(curves, spot, brent_future, wti_history)  # Today's numbers as table rows, built once for all three reports
     file_section = summary_markdown(rows, chart_paths, run_time, "../docs/charts/")  # For output/summary.md (one folder down)
     readme_section = summary_markdown(rows, chart_paths, run_time, "docs/charts/")   # For README.md (top folder)
