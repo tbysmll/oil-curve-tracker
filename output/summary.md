@@ -1,6 +1,6 @@
 # Oil Curve Tracker summary
 
-Run at 03 Nov 2026 10:12 UK time. Prices in $/bbl. Every row shows the date its prices come from.
+Run at 03 Nov 2026 10:40 UK time. Prices in $/bbl. Every row shows the date its prices come from.
 
 ### Today's numbers
 
@@ -9,12 +9,12 @@ Run at 03 Nov 2026 10:12 UK time. Prices in $/bbl. Every row shows the date its 
 | Brent M1-M2 | +3.07 | backwardation | 02 Nov 2026 | 2027-01 minus 2027-02 |
 | Brent M1-M6 | +11.71 | backwardation | 02 Nov 2026 | 2027-01 minus 2027-06 |
 | Brent M1-M12 | +19.79 | backwardation | 02 Nov 2026 | 2027-01 minus 2027-12 |
-| WTI M1-M2 | +1.55 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-01 |
-| WTI M1-M6 | +8.88 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-05 |
-| WTI M1-M12 | +15.95 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-11 |
+| WTI M1-M2 | +1.45 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-01 |
+| WTI M1-M6 | +8.90 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-05 |
+| WTI M1-M12 | +16.14 | backwardation | 03 Nov 2026 | 2026-12 minus 2027-11 |
 | Brent-WTI spot spread (EIA) | +19.73 | location spread | 27 Oct 2026 | Brent 123.10 minus WTI 103.37 |
 | Dated Brent minus front-month future | +9.22 | spot above future | 27 Oct 2026 (latest date both sources have) | EIA 123.10 minus Yahoo BZ=F 113.88 |
-| WTI M1-M2 percentile vs EIA history | 96.7 | percentile (not $/bbl) | today 03 Nov 2026; history 04 Jan 2010 to 05 Apr 2024 | 3,478 of 3,598 days at or below +1.55 |
+| WTI M1-M2 percentile vs EIA history | 96.2 | percentile (not $/bbl) | today 03 Nov 2026; history 04 Jan 2010 to 05 Apr 2024 | 3,462 of 3,598 days at or below +1.45 |
 
 ### Charts
 
