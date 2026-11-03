@@ -1,0 +1,5 @@
+pandas          # tables of data (like Excel in Python)
+requests        # downloads data from web APIs (used for EIA)
+yfinance        # downloads futures prices from Yahoo Finance
+matplotlib      # draws the charts
+python-dotenv   # reads the API key from the .env file

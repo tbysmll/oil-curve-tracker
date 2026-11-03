@@ -1,0 +1,79 @@
+# daily-update.yml - runs the Oil Curve Tracker on GitHub's computers every weekday at 22:30 UK time,
+# then commits the new snapshot, charts, summary and README back to the repository.
+# GitHub reads every .yml file in .github/workflows/ automatically; nothing else needs switching on.
+
+name: Daily curve update                     # The name shown in the repository's Actions tab
+
+on:                                          # "on" lists the events that start this workflow
+  schedule:                                  # 1. A timetable. GitHub's timetable only understands UTC, so:
+    - cron: "30 21 * * 1-5"                  #    21:30 UTC Mon-Fri = 22:30 UK in summer (British Summer Time, UTC+1)
+    - cron: "30 22 * * 1-5"                  #    22:30 UTC Mon-Fri = 22:30 UK in winter (GMT, same as UTC)
+  workflow_dispatch:                         # 2. A "Run workflow" button in the Actions tab, for running it by hand
+
+permissions:                                 # What the workflow's temporary access token is allowed to do
+  contents: write                            # Read the code AND push commits back (needed to save each day's results)
+
+concurrency:                                 # Stops two runs overlapping (e.g. a manual run during a scheduled one)
+  group: daily-curve-update                  # Runs sharing this name queue up behind each other...
+  cancel-in-progress: false                  # ...rather than cancelling a run that's already writing data
+
+jobs:                                        # A workflow is made of jobs; this one has two
+  check-uk-time:                             # Job 1: decide whether this trigger really is 22:30 in the UK
+    runs-on: ubuntu-latest                   # Run it on a fresh Linux machine that GitHub provides
+    outputs:                                 # Pass this job's answer on to job 2
+      go: ${{ steps.clock.outputs.go }}      # "true" or "false", set by the step below
+    steps:                                   # The commands this job runs, in order
+      - name: Is it 22:30 in the UK?         # Name shown in the run's log
+        id: clock                            # A label so the "outputs" line above can find this step's answer
+        run: |                               # The shell commands that follow (the | means "several lines")
+          offset=$(TZ=Europe/London date +%z)   # The UK's current offset from UTC: +0000 in winter, +0100 in summer
+          trigger="${{ github.event.schedule }}"   # Which cron line started this run (blank for a manual run)
+          if [ "${{ github.event_name }}" != "schedule" ]; then   # Started by the button, not the timetable...
+            echo "go=true" >> "$GITHUB_OUTPUT"                    # ...so always run
+          elif [ "$offset" = "+0100" ] && [ "$trigger" = "30 21 * * 1-5" ]; then   # Summer, and this is the 21:30 UTC line...
+            echo "go=true" >> "$GITHUB_OUTPUT"                    # ...which is 22:30 UK: run
+          elif [ "$offset" = "+0000" ] && [ "$trigger" = "30 22 * * 1-5" ]; then   # Winter, and this is the 22:30 UTC line...
+            echo "go=true" >> "$GITHUB_OUTPUT"                    # ...which is 22:30 UK: run
+          else                                                    # Otherwise this is the other season's line...
+            echo "go=false" >> "$GITHUB_OUTPUT"                   # ...so skip today's duplicate
+            echo "Not 22:30 UK time for this trigger (UK offset $offset); skipping."   # Explain the skip in the log
+          fi                                                      # End of the if/else
+
+  update:                                    # Job 2: run the tracker and commit the results
+    needs: check-uk-time                     # Wait for job 1 to finish first
+    if: needs.check-uk-time.outputs.go == 'true'   # Only run if job 1 said yes (otherwise it shows as "skipped")
+    runs-on: ubuntu-latest                   # A fresh Linux machine
+    timeout-minutes: 20                      # Give up if it hangs (a normal run takes about 2 minutes)
+    env:                                     # Settings available to every step in this job
+      TZ: Europe/London                      # Use UK time, so "Run at" and the freshness check use the UK date
+      MPLBACKEND: Agg                        # Tell matplotlib to draw straight to files (the machine has no screen)
+    steps:                                   # The commands this job runs, in order
+      - name: Get the code                   # Step 1
+        uses: actions/checkout@v5            # GitHub's ready-made step that downloads this repository onto the machine
+
+      - name: Install Python                 # Step 2
+        uses: actions/setup-python@v6        # GitHub's ready-made step that installs Python
+        with:                                # Options for that step
+          python-version: "3.15"             # The same version as on your PC
+          cache: pip                         # Reuse downloaded libraries between runs, to save time
+
+      - name: Install libraries              # Step 3
+        run: pip install -r requirements.txt # The same command you ran locally
+
+      - name: Run the tracker                # Step 4: if anything fails here, the job stops and step 5 never runs
+        env:                                 # Settings for this step only
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}   # The key from the repository's secrets; GitHub hides it in logs
+        run: python main.py                  # Downloads, checks, calculates, charts, writes README and snapshot
+
+      - name: Commit and push the results    # Step 5: only reached if step 4 succeeded
+        run: |                               # Several shell commands
+          git config user.name "github-actions[bot]"   # Commits are signed as GitHub's bot, not as you
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"   # The bot's standard address
+          git add data/curve_snapshots.csv output/*.png output/summary.md README.md   # Stage only the files the tracker writes
+          if git diff --staged --quiet; then                  # If nothing actually changed...
+            echo "No changes to commit."                      # ...say so and finish without an empty commit
+          else                                                # Otherwise...
+            git commit -m "Daily curve update $(date +%Y-%m-%d)"   # ...commit, with today's UK date in the message
+            git pull --rebase                                 # Pick up anything pushed since this run started
+            git push                                          # Send the commit back to GitHub
+          fi                                                  # End of the if/else
