@@ -22,9 +22,18 @@ EIA_BASE_URL = "https://api.eia.gov/v2"   # The root web address of EIA's API (v
 # ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent   # The folder this file sits in, i.e. the project folder
 DATA_DIR = BASE_DIR / "data"                 # Downloaded data and the saved daily curve snapshots go here
-OUTPUT_DIR = BASE_DIR / "output"             # Charts and the written summary go here
+OUTPUT_DIR = BASE_DIR / "output"             # The written Markdown summary goes here
+DOCS_DIR = BASE_DIR / "docs"                 # The web report (index.html); GitHub Pages publishes this folder
+CHART_DIR = DOCS_DIR / "charts"              # The chart images, inside docs/ so the web page can show them
 DATA_DIR.mkdir(exist_ok=True)                # Create the data folder if it isn't there yet (no error if it is)
 OUTPUT_DIR.mkdir(exist_ok=True)              # Same for the output folder
+CHART_DIR.mkdir(parents=True, exist_ok=True) # Same for docs/charts (parents=True also creates docs/ if needed)
+
+# ---------------------------------------------------------------------------
+# Where the project lives online
+# ---------------------------------------------------------------------------
+REPO_URL = "https://github.com/tbysmll/oil-curve-tracker"     # The code on GitHub, linked from the web report
+PAGES_URL = "https://tbysmll.github.io/oil-curve-tracker/"    # The web report, once GitHub Pages is switched on
 
 # ---------------------------------------------------------------------------
 # Futures contract settings

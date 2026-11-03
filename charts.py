@@ -1,5 +1,7 @@
 """
-charts.py - draws the tracker's four charts and saves them as PNG files in output/.
+charts.py - draws the tracker's four charts and saves them as PNG files in docs/charts/.
+(They live inside docs/ because GitHub Pages can only show files in that folder; the README
+and output/summary.md link to the same files, so each chart is stored once.)
 
   1. curves.png            - today's Brent and WTI curves, each against the same contracts one month earlier
   2. brent_wti_spread.png  - the Brent-WTI spot spread (EIA) over the past two years
@@ -14,7 +16,7 @@ Run it with:  python charts.py
 import pandas as pd                                # pandas, for dates and tables
 import matplotlib.pyplot as plt                    # pyplot is matplotlib's drawing toolkit
 import matplotlib.dates as mdates                  # Formats dates along an axis, e.g. "Jan 26"
-from config import MARKETS, OUTPUT_DIR             # Each market's colour, and where to save the charts
+from config import MARKETS, CHART_DIR              # Each market's colour, and where to save the charts
 from spreads import (                              # The calculations behind the charts
     time_spreads,                                  # Today's M1-M2 etc. from a curve
     wti_m1m2_percentile,                           # Where today's WTI M1-M2 sits in history
@@ -41,13 +43,13 @@ def style_axes(ax):
 
 
 def save(fig, filename):
-    """Save a finished figure into output/ and free the memory it used.
+    """Save a finished figure into docs/charts/ and free the memory it used.
 
     fig      -- the matplotlib figure to save
     filename -- the file name, e.g. "curves.png"
     Returns the full path of the saved file.
     """
-    path = OUTPUT_DIR / filename                   # Full path, e.g. output/curves.png
+    path = CHART_DIR / filename                    # Full path, e.g. docs/charts/curves.png
     fig.savefig(path, dpi=150, bbox_inches="tight")  # Save; dpi=150 keeps it sharp, "tight" trims spare white space
     plt.close(fig)                                 # Free the memory (no window is opened)
     return path                                    # Tell the caller where the file went

@@ -69,7 +69,7 @@ jobs:                                        # A workflow is made of jobs; this 
         run: |                               # Several shell commands
           git config user.name "github-actions[bot]"   # Commits are signed as GitHub's bot, not as you
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"   # The bot's standard address
-          git add data/curve_snapshots.csv output/*.png output/summary.md README.md   # Stage only the files the tracker writes
+          git add data/curve_snapshots.csv output/summary.md README.md docs/   # Stage only the files the tracker writes (docs/ = web page + charts)
           if git diff --staged --quiet; then                  # If nothing actually changed...
             echo "No changes to commit."                      # ...say so and finish without an empty commit
           else                                                # Otherwise...

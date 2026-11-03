@@ -34,7 +34,8 @@ def fetch_series(route, series_map, start=None):
     start      -- optional first date to download, as "YYYY-MM-DD"
     """
     if not EIA_API_KEY:                                        # Stop early with a clear message if there's no key
-        raise RuntimeError("No EIA_API_KEY found. Put it in a .env file (see .env.example).")
+        raise RuntimeError("No EIA_API_KEY found. On your PC, put it in a .env file (see .env.example); "  # Where the key goes locally...
+                           "on GitHub, add it as a repository secret called EIA_API_KEY.")  # Covers both places the key can come from
 
     rows = []                                                  # Every row EIA sends back gets collected in this list
     offset = 0                                                 # Which row to start from; moves forward one page at a time
@@ -51,11 +52,21 @@ def fetch_series(route, series_map, start=None):
             "length": PAGE_SIZE,                               # Ask for a full page
         }
         if start:                                              # Only add a start date if one was given
-            params["start"] = start
+            params["start"] = start                            # e.g. "2010-01-01"
 
         url = f"{EIA_BASE_URL}/{route}/data/"                  # Full address, e.g. https://api.eia.gov/v2/petroleum/pri/spt/data/
-        reply = requests.get(url, params=params, timeout=60)   # Send the request; give up after 60 seconds
-        reply.raise_for_status()                               # If EIA returned an error (bad key, outage), stop here with that error
+        # requests' own error messages include the full web address, and that address contains the API key.
+        # So we never let those messages through: we check the reply ourselves and raise our own error instead.
+        try:                                                   # Try to send the request...
+            reply = requests.get(url, params=params, timeout=60)   # ...giving up after 60 seconds
+        except requests.RequestException as error:             # No reply at all (no internet, EIA down, timed out)
+            raise RuntimeError(f"Could not reach EIA ({type(error).__name__}).") from None  # "from None" hides the original message (and the key in it)
+        if reply.status_code != 200:                           # 200 means OK; anything else means EIA refused the request
+            reason = reply.text[:300].replace(EIA_API_KEY, "***")  # EIA's own explanation, with the key blanked out just in case
+            raise RuntimeError(                                # Stop with a clear message that never contains the key
+                f"EIA refused the request (HTTP {reply.status_code}): {reason} "  # What EIA said...
+                "Check EIA_API_KEY in .env (on your PC) or in the GitHub secret (for the daily workflow)."  # ...and where to look
+            )                                                  # End of the error message
         page = reply.json()["response"]["data"]                # Turn the reply into Python data and pull out the list of rows
         rows.extend(page)                                      # Add this page's rows to the collection
 

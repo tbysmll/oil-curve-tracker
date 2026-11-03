@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oil Curve Tracker</title>
+<meta name="description" content="Daily Brent and WTI futures curves, spreads and backwardation, with commentary.">
+<style>
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #222; background: #fff; line-height: 1.55; } /* Clean system font, dark text on white */
+main { max-width: 920px; margin: 0 auto; padding: 32px 20px 48px; }  /* One centred column, comfortable to read */
+h1 { margin: 0 0 4px; font-size: 1.9rem; }                            /* Page title */
+h2 { margin: 40px 0 12px; font-size: 1.3rem; padding-bottom: 6px; border-bottom: 1px solid #ddd; }  /* Section headings with a thin line under them */
+.subtitle, .meta, .note { color: #555; }                               /* Secondary text in mid grey */
+.meta, .note { font-size: 0.9rem; }                                    /* ...and slightly smaller */
+.table-wrap { overflow-x: auto; }                                      /* On a phone the table scrolls sideways instead of squashing */
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }  /* Full-width table with single-line borders */
+th, td { padding: 7px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid #e5e5e5; }  /* Cell spacing and faint row lines */
+th { background: #f6f6f6; font-weight: 600; }                          /* Light grey header row */
+td:first-child { min-width: 8em; }                                     /* Wide enough that "Brent M1-M12" never breaks at its hyphen */
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }  /* Numbers right-aligned so the decimals line up */
+.commentary p { margin: 0 0 14px; }                                    /* Space between commentary paragraphs */
+figure { margin: 28px 0; }                                             /* Space around each chart */
+figure img { width: 100%; height: auto; border: 1px solid #eee; }      /* Charts fill the column width */
+figcaption { margin-top: 6px; color: #555; font-size: 0.9rem; }        /* Caption under each chart */
+footer { margin-top: 48px; color: #666; font-size: 0.85rem; }          /* Small grey footer */
+a { color: #1f4e79; }                                                  /* Links in the Brent blue */
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Oil Curve Tracker</h1>
+<p class="subtitle">The shape of the Brent and WTI crude oil futures curves, updated every weekday at 22:30 UK time.</p>
+<p class="meta">Last updated 03 Nov 2026, 10:45 UK time. Prices in $/bbl. Every number shows the date its prices come from.</p>
+</header>
+<section>
+<h2>Today's numbers</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Measure</th><th class="num">Value</th><th>Reading</th><th>Data date</th><th>Working</th></tr></thead>
+<tbody>
+<tr><td>Brent M1-M2</td><td class="num">+3.07</td><td>backwardation</td><td>02 Nov 2026</td><td>2027-01 minus 2027-02</td></tr>
+<tr><td>Brent M1-M6</td><td class="num">+11.71</td><td>backwardation</td><td>02 Nov 2026</td><td>2027-01 minus 2027-06</td></tr>
+<tr><td>Brent M1-M12</td><td class="num">+19.79</td><td>backwardation</td><td>02 Nov 2026</td><td>2027-01 minus 2027-12</td></tr>
+<tr><td>WTI M1-M2</td><td class="num">+1.45</td><td>backwardation</td><td>03 Nov 2026</td><td>2026-12 minus 2027-01</td></tr>
+<tr><td>WTI M1-M6</td><td class="num">+8.75</td><td>backwardation</td><td>03 Nov 2026</td><td>2026-12 minus 2027-05</td></tr>
+<tr><td>WTI M1-M12</td><td class="num">+16.13</td><td>backwardation</td><td>03 Nov 2026</td><td>2026-12 minus 2027-11</td></tr>
+<tr><td>Brent-WTI spot spread (EIA)</td><td class="num">+19.73</td><td>location spread</td><td>27 Oct 2026</td><td>Brent 123.10 minus WTI 103.37</td></tr>
+<tr><td>Dated Brent minus front-month future</td><td class="num">+9.22</td><td>spot above future</td><td>27 Oct 2026 (latest date both sources have)</td><td>EIA 123.10 minus Yahoo BZ=F 113.88</td></tr>
+<tr><td>WTI M1-M2 percentile vs EIA history</td><td class="num">96.2</td><td>percentile (not $/bbl)</td><td>today 03 Nov 2026; history 04 Jan 2010 to 05 Apr 2024</td><td>3,462 of 3,598 days at or below +1.45</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="commentary">
+<h2>Commentary</h2>
+<p class="note">No commentary yet.</p>
+<p class="note">Written by hand, so it changes only when I update it; the numbers and charts update automatically every weekday.</p>
+</section>
+<section>
+<h2>Charts</h2>
+<figure>
+<img src="charts/curves.png?v=202611031045" alt="Each futures curve today (solid) against the same contracts one month earlier (dashed)." loading="lazy">
+<figcaption>Each futures curve today (solid) against the same contracts one month earlier (dashed).</figcaption>
+</figure>
+<figure>
+<img src="charts/brent_wti_spread.png?v=202611031045" alt="Brent minus WTI spot price (EIA) over the past two years." loading="lazy">
+<figcaption>Brent minus WTI spot price (EIA) over the past two years.</figcaption>
+</figure>
+<figure>
+<img src="charts/m1_m6_fixed.png?v=202611031045" alt="Today&#x27;s M1 minus M6 contracts, held fixed, over the past six months." loading="lazy">
+<figcaption>Today&#x27;s M1 minus M6 contracts, held fixed, over the past six months.</figcaption>
+</figure>
+<figure>
+<img src="charts/wti_m1m2_history.png?v=202611031045" alt="How often each WTI M1-M2 value occurred from 2010 to 2024, with today&#x27;s value marked." loading="lazy">
+<figcaption>How often each WTI M1-M2 value occurred from 2010 to 2024, with today&#x27;s value marked.</figcaption>
+</figure>
+</section>
+<section>
+<h2>Notes on method</h2>
+<ul>
+<li>Brent and WTI curves can come from different days: each uses its latest day with all 12 contracts priced.</li>
+<li>If the tracker ran during US trading hours, the latest futures prices are live rather than closing prices.</li>
+<li>EIA spot prices run a few days behind; the WTI percentile deliberately compares today with 2010-2024.</li>
+</ul>
+</section>
+<footer>
+<p>Data: <a href="https://www.eia.gov/opendata/">EIA Open Data</a> and Yahoo Finance. Code: <a href="https://github.com/tbysmll/oil-curve-tracker">GitHub</a>. For learning purposes; not investment advice.</p>
+</footer>
+</main>
+</body>
+</html>

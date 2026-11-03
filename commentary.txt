@@ -1,0 +1,5 @@
+# My commentary for the web report (docs/index.html).
+# Lines starting with # are notes to myself and never appear on the page.
+# Leave a blank line between paragraphs. Plain text only: no formatting needed.
+# Start with the date I wrote it, because the numbers on the page change every weekday but this text doesn't.
+# After editing: run python main.py to see it locally, or just commit and push; tonight's run publishes it.
