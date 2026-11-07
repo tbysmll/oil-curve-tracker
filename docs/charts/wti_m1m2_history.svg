@@ -1249,8 +1249,8 @@ z
 " clip-path="url(#p9046224050)" style="fill: #4f81bd; stroke: #ffffff; stroke-width: 0.4; stroke-linejoin: miter"/>
    </g>
    <g id="line2d_24">
-    <path d="M 218.284488 225.504 
-L 218.284488 33.696 
+    <path d="M 211.757387 225.504 
+L 211.757387 33.696 
 " clip-path="url(#p9046224050)" style="fill: none; stroke: #c9a227; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="patch_53">
@@ -1259,8 +1259,8 @@ L 325.728 225.504
 " style="fill: none; stroke: #595959; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_18">
-    <!-- Latest +1.42 -->
-    <g style="fill: #595959" transform="translate(222.284488 41.520219) scale(0.08 -0.08)">
+    <!-- Latest +1.24 -->
+    <g style="fill: #595959" transform="translate(215.757387 41.520219) scale(0.08 -0.08)">
      <defs>
       <path id="LiberationSans-Bold-2f" d="M 428 0 
 L 428 4403 
@@ -1427,28 +1427,6 @@ L 1338 0
 L 434 0 
 z
 " transform="scale(0.015625)"/>
-      <path id="LiberationSans-Bold-17" d="M 2938 897 
-L 2938 0 
-L 2100 0 
-L 2100 897 
-L 97 897 
-L 97 1556 
-L 1956 4403 
-L 2938 4403 
-L 2938 1550 
-L 3525 1550 
-L 3525 897 
-L 2938 897 
-z
-M 2100 2991 
-Q 2100 3159 2111 3356 
-Q 2122 3553 2128 3609 
-Q 2047 3434 1834 3103 
-L 813 1550 
-L 2100 1550 
-L 2100 2991 
-z
-" transform="scale(0.015625)"/>
       <path id="LiberationSans-Bold-15" d="M 222 0 
 L 222 609 
 Q 394 988 711 1347 
@@ -1474,6 +1452,28 @@ L 3303 0
 L 222 0 
 z
 " transform="scale(0.015625)"/>
+      <path id="LiberationSans-Bold-17" d="M 2938 897 
+L 2938 0 
+L 2100 0 
+L 2100 897 
+L 97 897 
+L 97 1556 
+L 1956 4403 
+L 2938 4403 
+L 2938 1550 
+L 3525 1550 
+L 3525 897 
+L 2938 897 
+z
+M 2100 2991 
+Q 2100 3159 2111 3356 
+Q 2122 3553 2128 3609 
+Q 2047 3434 1834 3103 
+L 813 1550 
+L 2100 1550 
+L 2100 2991 
+z
+" transform="scale(0.015625)"/>
      </defs>
      <use xlink:href="#LiberationSans-Bold-2f"/>
      <use xlink:href="#LiberationSans-Bold-44" transform="translate(61.078125 0)"/>
@@ -1485,8 +1485,8 @@ z
      <use xlink:href="#LiberationSans-Bold-e" transform="translate(322.28125 0)"/>
      <use xlink:href="#LiberationSans-Bold-14" transform="translate(380.6875 0)"/>
      <use xlink:href="#LiberationSans-Bold-11" transform="translate(436.296875 0)"/>
-     <use xlink:href="#LiberationSans-Bold-17" transform="translate(464.078125 0)"/>
-     <use xlink:href="#LiberationSans-Bold-15" transform="translate(519.6875 0)"/>
+     <use xlink:href="#LiberationSans-Bold-15" transform="translate(464.078125 0)"/>
+     <use xlink:href="#LiberationSans-Bold-17" transform="translate(519.6875 0)"/>
     </g>
    </g>
   </g>
