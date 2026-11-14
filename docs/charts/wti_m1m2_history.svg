@@ -1249,8 +1249,8 @@ z
 " clip-path="url(#p9046224050)" style="fill: #4f81bd; stroke: #ffffff; stroke-width: 0.4; stroke-linejoin: miter"/>
    </g>
    <g id="line2d_24">
-    <path d="M 205.592902 225.504 
-L 205.592902 33.696 
+    <path d="M 214.295704 225.504 
+L 214.295704 33.696 
 " clip-path="url(#p9046224050)" style="fill: none; stroke: #c9a227; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="patch_53">
@@ -1259,8 +1259,8 @@ L 325.728 225.504
 " style="fill: none; stroke: #595959; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_18">
-    <!-- Latest +1.07 -->
-    <g style="fill: #595959" transform="translate(209.592902 41.520219) scale(0.08 -0.08)">
+    <!-- Latest +1.31 -->
+    <g style="fill: #595959" transform="translate(218.295704 41.520219) scale(0.08 -0.08)">
      <defs>
       <path id="LiberationSans-Bold-2f" d="M 428 0 
 L 428 4403 
@@ -1427,44 +1427,36 @@ L 1338 0
 L 434 0 
 z
 " transform="scale(0.015625)"/>
-      <path id="LiberationSans-Bold-13" d="M 3297 2203 
-Q 3297 1088 2914 512 
-Q 2531 -63 1766 -63 
-Q 253 -63 253 2203 
-Q 253 2994 418 3494 
-Q 584 3994 915 4231 
-Q 1247 4469 1791 4469 
-Q 2572 4469 2934 3903 
-Q 3297 3338 3297 2203 
-z
-M 2416 2203 
-Q 2416 2813 2356 3150 
-Q 2297 3488 2165 3634 
-Q 2034 3781 1784 3781 
-Q 1519 3781 1383 3632 
-Q 1247 3484 1189 3148 
-Q 1131 2813 1131 2203 
-Q 1131 1600 1192 1261 
-Q 1253 922 1386 775 
-Q 1519 628 1772 628 
-Q 2022 628 2158 783 
-Q 2294 938 2355 1278 
-Q 2416 1619 2416 2203 
-z
-" transform="scale(0.015625)"/>
-      <path id="LiberationSans-Bold-1a" d="M 3278 3706 
-Q 2981 3238 2717 2797 
-Q 2453 2356 2256 1911 
-Q 2059 1466 1945 995 
-Q 1831 525 1831 0 
-L 916 0 
-Q 916 550 1059 1064 
-Q 1203 1578 1475 2111 
-Q 1747 2644 2463 3681 
-L 275 3681 
-L 275 4403 
-L 3278 4403 
-L 3278 3706 
+      <path id="LiberationSans-Bold-16" d="M 3328 1222 
+Q 3328 603 2922 265 
+Q 2516 -72 1766 -72 
+Q 1056 -72 637 254 
+Q 219 581 147 1197 
+L 1041 1275 
+Q 1125 641 1763 641 
+Q 2078 641 2253 797 
+Q 2428 953 2428 1275 
+Q 2428 1569 2215 1725 
+Q 2003 1881 1584 1881 
+L 1278 1881 
+L 1278 2591 
+L 1566 2591 
+Q 1944 2591 2134 2745 
+Q 2325 2900 2325 3188 
+Q 2325 3459 2173 3614 
+Q 2022 3769 1731 3769 
+Q 1459 3769 1292 3619 
+Q 1125 3469 1100 3194 
+L 222 3256 
+Q 291 3825 694 4147 
+Q 1097 4469 1747 4469 
+Q 2438 4469 2827 4158 
+Q 3216 3847 3216 3297 
+Q 3216 2884 2973 2618 
+Q 2731 2353 2275 2266 
+L 2275 2253 
+Q 2781 2194 3054 1920 
+Q 3328 1647 3328 1222 
 z
 " transform="scale(0.015625)"/>
      </defs>
@@ -1478,8 +1470,8 @@ z
      <use xlink:href="#LiberationSans-Bold-e" transform="translate(322.28125 0)"/>
      <use xlink:href="#LiberationSans-Bold-14" transform="translate(380.6875 0)"/>
      <use xlink:href="#LiberationSans-Bold-11" transform="translate(436.296875 0)"/>
-     <use xlink:href="#LiberationSans-Bold-13" transform="translate(464.078125 0)"/>
-     <use xlink:href="#LiberationSans-Bold-1a" transform="translate(519.6875 0)"/>
+     <use xlink:href="#LiberationSans-Bold-16" transform="translate(464.078125 0)"/>
+     <use xlink:href="#LiberationSans-Bold-14" transform="translate(519.6875 0)"/>
     </g>
    </g>
   </g>
