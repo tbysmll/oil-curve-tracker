@@ -1,60 +1,60 @@
 # Oil Curve Tracker summary
 
-Run at 18 Nov 2026 03:46 UK time. Prices in $/bbl. Every row shows the date its prices come from.
+Run at 19 Nov 2026 03:44 UK time. Prices in $/bbl. Every row shows the date its prices come from.
 
 ### Today's numbers
 
 | Measure | Value | Reading | Data date | Working |
 |---|---:|---|---|---|
-| Brent M1-M2 | +2.87 | backwardation | 17 Nov 2026 | 2027-01 minus 2027-02 |
-| Brent M1-M6 | +9.96 | backwardation | 17 Nov 2026 | 2027-01 minus 2027-06 |
-| Brent M1-M12 | +15.75 | backwardation | 17 Nov 2026 | 2027-01 minus 2027-12 |
-| WTI M1-M2 | +1.20 | backwardation | 17 Nov 2026 | 2026-12 minus 2027-01 |
-| WTI M1-M6 | +6.53 | backwardation | 17 Nov 2026 | 2026-12 minus 2027-05 |
-| WTI M1-M12 | +12.16 | backwardation | 17 Nov 2026 | 2026-12 minus 2027-11 |
-| Brent-WTI spot spread (EIA) | +2.52 | location spread | 11 Nov 2026 | Brent 92.14 minus WTI 89.62 |
-| Dated Brent minus front-month future | -0.62 | spot below future | 11 Nov 2026 (latest date both sources have) | EIA 92.14 minus Yahoo BZ=F 92.76 |
-| Dated Brent minus front-month future, 2-year average | +2.92 | today -0.62 vs 2-year average +2.92 | 11 Nov 2024 to 11 Nov 2026 | mean of 496 trading days with both EIA and Yahoo prices |
-| WTI M1-M2 percentile vs EIA history | 94.9% | higher than 94.9% of trading days, 2010-24 | today 17 Nov 2026; history 04 Jan 2010 to 05 Apr 2024 | +1.20 is higher than 3,413 of 3,598 trading days |
+| Brent M1-M2 | +2.79 | backwardation | 18 Nov 2026 | 2027-01 minus 2027-02 |
+| Brent M1-M6 | +9.58 | backwardation | 18 Nov 2026 | 2027-01 minus 2027-06 |
+| Brent M1-M12 | +15.65 | backwardation | 18 Nov 2026 | 2027-01 minus 2027-12 |
+| WTI M1-M2 | +0.91 | backwardation | 18 Nov 2026 | 2026-12 minus 2027-01 |
+| WTI M1-M6 | +5.41 | backwardation | 18 Nov 2026 | 2026-12 minus 2027-05 |
+| WTI M1-M12 | +10.67 | backwardation | 18 Nov 2026 | 2026-12 minus 2027-11 |
+| Brent-WTI spot spread (EIA) | +3.41 | location spread | 17 Nov 2026 | Brent 92.94 minus WTI 89.53 |
+| Dated Brent minus front-month future | -0.20 | spot below future | 17 Nov 2026 (latest date both sources have) | EIA 92.94 minus Yahoo BZ=F 93.14 |
+| Dated Brent minus front-month future, 2-year average | +2.91 | today -0.20 vs 2-year average +2.91 | 18 Nov 2024 to 17 Nov 2026 | mean of 495 trading days with both EIA and Yahoo prices |
+| WTI M1-M2 percentile vs EIA history | 92.6% | higher than 92.6% of trading days, 2010-24 | today 18 Nov 2026; history 04 Jan 2010 to 05 Apr 2024 | +0.91 is higher than 3,330 of 3,598 trading days |
 
 ### Charts
 
-**Figure 1: Both curves in backwardation; Brent steeper at +15.75 $/bbl over 12 months**  
+**Figure 1: Both curves in backwardation; Brent steeper at +15.65 $/bbl over 12 months**  
 Futures price by delivery month, $/bbl: latest (solid) vs the same contracts one month earlier (dashed)
 
 ![Figure 1](../docs/charts/curves.svg)
 
-*Source: NYMEX via Yahoo Finance. Data as of 17 Nov 2026 (Brent), 17 Nov 2026 (WTI).*
+*Source: NYMEX via Yahoo Finance. Data as of 18 Nov 2026 (Brent), 18 Nov 2026 (WTI).*
 
-**Figure 2: Brent-WTI spot spread down 28.78 $/bbl over the past month, to +2.52**  
+**Figure 2: Brent-WTI spot spread down 7.71 $/bbl over the past month, to +3.41**  
 Daily Brent (Dated, FOB) minus WTI (Cushing) spot price, $/bbl
 
 ![Figure 2](../docs/charts/brent_wti_spread.svg)
 
-*Source: EIA. Data as of 11 Nov 2026.*
+*Source: EIA. Data as of 17 Nov 2026.*
 
-**Figure 3: Six-month spreads both down on the month: Brent +9.96, WTI +6.53 $/bbl**  
+**Figure 3: Six-month spreads both down on the month: Brent +9.58, WTI +5.41 $/bbl**  
 Daily spread between today's M1 and M6 contracts, held fixed (Brent Jan-27 minus Jun-27; WTI Dec-26 minus May-27), $/bbl
 
 ![Figure 3](../docs/charts/m1_m6_fixed.svg)
 
-*Source: NYMEX via Yahoo Finance. Data as of 17 Nov 2026 (Brent), 17 Nov 2026 (WTI).*
+*Source: NYMEX via Yahoo Finance. Data as of 18 Nov 2026 (Brent), 18 Nov 2026 (WTI).*
 
-**Figure 4: WTI M1-M2 at +1.20 $/bbl: higher than 94.9% of trading days, 2010-24**  
+**Figure 4: WTI M1-M2 at +0.91 $/bbl: higher than 92.6% of trading days, 2010-24**  
 Number of days at each WTI M1-M2 spread, Jan-10 to Apr-24 (3,598 days); gold line = latest value
 
 ![Figure 4](../docs/charts/wti_m1m2_history.svg)
 
 *Note: 18 days below -4.00 $/bbl not shown (lowest -58.06 on 20 Apr 2020).*  
-*Source: EIA (history to 05 Apr 2024), NYMEX via Yahoo Finance (latest, 17 Nov 2026).*
+*Source: EIA (history to 05 Apr 2024), NYMEX via Yahoo Finance (latest, 18 Nov 2026).*
 
-**Figure 5: Brent-WTI front-month spread up over the year, to +7.73 $/bbl from +4.29**  
+**Figure 5: Brent-WTI front-month spread up over the year, to +7.17 $/bbl from +4.15**  
 Continuous front-month futures, $/bbl (top); Brent minus WTI, $/bbl (bottom)
 
 ![Figure 5](../docs/charts/front_month_comparison.svg)
 
 *Note: Continuous front-month series switch to the next contract on roll days, so a sudden jump on those days isn't a real price move.*  
-*Source: NYMEX via Yahoo Finance (BZ=F, CL=F). Data as of 17 Nov 2026.*
+*Source: NYMEX via Yahoo Finance (BZ=F, CL=F). Data as of 18 Nov 2026.*
 
 ### Notes
 
